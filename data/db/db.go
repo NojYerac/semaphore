@@ -1,6 +1,7 @@
 package db
 
 import (
+	_ "github.com/lib/pq"
 	"github.com/nojyerac/go-lib/pkg/db"
 )
 

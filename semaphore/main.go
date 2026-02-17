@@ -9,6 +9,7 @@ import (
 	libdb "github.com/nojyerac/go-lib/pkg/db"
 	"github.com/nojyerac/go-lib/pkg/health"
 	"github.com/nojyerac/go-lib/pkg/log"
+	"github.com/nojyerac/go-lib/pkg/metrics"
 	"github.com/nojyerac/go-lib/pkg/tracing"
 	"github.com/nojyerac/go-lib/pkg/transport"
 	"github.com/nojyerac/go-lib/pkg/transport/grpc"
@@ -23,7 +24,13 @@ import (
 )
 
 func main() {
+	version.SetSemVer("0.0.0")
+	version.SetServiceName("semaphore")
 	v := version.GetVersion()
+
+	if err := config.InitAndValidate(); err != nil {
+		panic(err)
+	}
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -33,6 +40,12 @@ func main() {
 
 	tracer := tracing.NewTracerProvider(config.TraceConfig)
 	tracing.SetGlobal(tracer)
+
+	meter, metricHandler, err := metrics.NewMeterProvider(nil)
+	if err != nil {
+		logger.Panic().Err(err).Msg("failed to create meter provider")
+	}
+	metrics.SetGlobal(meter)
 
 	checker := health.NewChecker(config.HealthConfig)
 
@@ -47,6 +60,7 @@ func main() {
 		config.HTTPConfig,
 		libhttp.WithLogger(&logger),
 		libhttp.WithHealthCheck(checker),
+		libhttp.WithMetricHandler(metricHandler),
 	)
 	http.RegisterRoutes(source, httpServer.APIRoutes())
 

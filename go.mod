@@ -3,9 +3,10 @@ module github.com/nojyerac/semaphore
 go 1.24.0
 
 require (
+	github.com/gin-gonic/gin v1.7.7
+	github.com/lib/pq v1.10.4
 	github.com/nojyerac/go-lib v0.0.0-20260217175322-981e68c06abf
 	google.golang.org/grpc v1.45.0
-	github.com/gin-gonic/gin v1.7.7
 )
 
 require (
