@@ -1,13 +1,13 @@
 package data
 
-type DataSource interface{}
+import "context"
 
-type Source struct {
-	db DataSource
+type Source interface {
+	GetFlags(ctx context.Context) ([]Flag, error)
 }
 
-func NewSource(db DataSource) *Source {
-	return &Source{
-		db: db,
-	}
+type Flag struct {
+	ID      int    `db:"id" json:"id"`
+	Name    string `db:"name" json:"name"`
+	Enabled bool   `db:"enabled" json:"enabled"`
 }

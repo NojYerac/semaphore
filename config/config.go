@@ -1,21 +1,21 @@
 package config
 
 import (
-	"github.com/nojyerac/go-lib/pkg/config"
-	"github.com/nojyerac/go-lib/pkg/db"
-	"github.com/nojyerac/go-lib/pkg/health"
-	"github.com/nojyerac/go-lib/pkg/log"
-	"github.com/nojyerac/go-lib/pkg/tracing"
-	"github.com/nojyerac/go-lib/pkg/transport"
-	"github.com/nojyerac/go-lib/pkg/transport/http"
-	"github.com/nojyerac/go-lib/pkg/version"
+	"github.com/nojyerac/go-lib/config"
+	"github.com/nojyerac/go-lib/db"
+	"github.com/nojyerac/go-lib/health"
+	"github.com/nojyerac/go-lib/log"
+	"github.com/nojyerac/go-lib/tracing"
+	"github.com/nojyerac/go-lib/transport"
+	"github.com/nojyerac/go-lib/transport/http"
+	"github.com/nojyerac/go-lib/version"
 )
 
 var (
 	LogConfig    *log.Configuration
 	DBConfig     *db.Configuration
-	TraceConfig  *tracing.Configuration
 	TransConfig  *transport.Configuration
+	TraceConfig  *tracing.Configuration
 	HealthConfig *health.Configuration
 	HTTPConfig   *http.Configuration
 )
@@ -38,7 +38,7 @@ func InitAndValidate() error {
 	if err := loader.RegisterConfig(HTTPConfig); err != nil {
 		return err
 	}
-	TraceConfig = tracing.NewConfiguration()
+	TraceConfig = &tracing.Configuration{}
 	if err := loader.RegisterConfig(TraceConfig); err != nil {
 		return err
 	}
