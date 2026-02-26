@@ -15,12 +15,12 @@ type DataSource struct {
 	db db.Database
 }
 
-func NewDataSource(ctx context.Context, database db.Database) *DataSource {
+func NewDataSource(ctx context.Context, database db.Database) (*DataSource, error) {
 	dataSource := &DataSource{
 		db: database,
 	}
-	dataSource.Migrate(ctx)
-	return dataSource
+	err := dataSource.Migrate(ctx)
+	return dataSource, err
 }
 
 func (d *DataSource) Migrate(ctx context.Context) error {

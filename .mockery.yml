@@ -1,0 +1,9 @@
+packages:
+  github.com/nojyerac/semafore:
+    config:
+      recursive: True
+      keeptree: True
+      with-expecter: True
+      resolve-type-alias: False
+      issue-845-fix: True
+      include-regex: "^(Source)$"

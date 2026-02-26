@@ -53,7 +53,10 @@ func main() {
 		logger.WithError(err).Panic("failed to connect to database")
 	}
 
-	source := db.NewDataSource(ctx, database)
+	source, err := db.NewDataSource(ctx, database)
+	if err != nil {
+		logger.WithError(err).Panic("failed to create data source")
+	}
 
 	httpServer := libhttp.NewServer(
 		config.HTTPConfig,
