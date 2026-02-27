@@ -4,26 +4,87 @@ package flag;
 option go_package = "pb/flag";
 
 message GetFlagRequest {
-    int64 id = 1;
+    string id = 1;
 }
 
 message GetFlagResponse {
     Flag flags = 1;
 }
 
-message StreamFlagsRequest {}
+message ListFlagsRequest {}
 
-message StreamFlagsResponse {
-    Flag flags = 1;
+message ListFlagsResponse {
+    Flag flag = 1;
+}
+
+message CreateFlagRequest {
+    Flag flag = 1;
+}
+
+message CreateFlagResponse {
+    string id = 1;
+}
+
+message UpdateFlagRequest {
+    Flag flag = 1;
+}
+
+message UpdateFlagResponse {
+    bool success = 1;
+}
+
+message DeleteFlagRequest {
+    string id = 1;
+}
+
+message DeleteFlagResponse {
+    bool success = 1;
 }
 
 message Flag {
-    int64 id = 1;
+    string id = 1;
     string name = 2;
     string description = 3;
+    bool enabled = 4;
+    repeated Strategy strategies = 5;
+}
+
+message Strategy {
+    string type = 1;
+    oneof payload {
+        PercentageRollout percentage_rollout = 2;
+        UserTargeting user_targeting = 3;
+        GroupTargeting group_targeting = 4;
+    };
+}
+
+message PercentageRollout {
+    int32 percentage = 1; // 0-100
+}
+
+message UserTargeting {
+    repeated string user_ids = 1;
+}
+
+message GroupTargeting {
+    repeated string group_ids = 1;
+}
+
+message EvaluateRequest {
+    string flag_id = 1;
+    string user_id = 2;
+    repeated string group_ids = 3;
+}
+
+message EvaluateResponse {
+    bool enabled = 1;
 }
 
 service FlagService {
     rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
-    rpc StreamFlags(StreamFlagsRequest) returns (stream StreamFlagsResponse);
+    rpc ListFlags(ListFlagsRequest) returns (stream ListFlagsResponse);
+    rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
+    rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
+    rpc DeleteFlag(DeleteFlagRequest) returns (DeleteFlagResponse);
+    rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
 }

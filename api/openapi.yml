@@ -1,0 +1,234 @@
+openapi: 3.1.0
+info:
+  title: Semaphore API
+  description: |
+    This is the API documentation for Semaphore, a feature
+    flag management service. The API allows you to create, update,
+    retrieve, and evaluate feature flags, as well as manage targeting rules.
+  version: 0.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /api/flags:
+    get:
+      summary: Returns a list of feature flags.
+      description: |
+        This endpoint retrieves a list of all feature flags in the system.
+        Each feature flag object includes its ID, name, description, enabled status,
+        creation and update timestamps, and targeting strategy.
+      responses:
+        "200":
+          description: A JSON array of feature flag objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeatureFlag"
+    post:
+      summary: Create a new feature flag.
+      description: |
+        This endpoint creates a new feature flag with the specified properties.
+        The request body should include the name, description, enabled status,
+        and targeting strategy for the feature flag. The response will include
+        the created feature flag identifier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartialFeatureFlag"
+      responses:
+        "201":
+          description: The created feature flag identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagID"
+
+    
+  /api/flags/{flag_id}:
+    parameters:
+      - name: flag_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier for the feature flag
+    get:
+      summary: Retrieve a specific feature flag by ID.
+      description: |
+        This endpoint retrieves the details of a specific feature flag identified by its ID.
+        The response includes the feature flag's name, description, enabled status,
+        creation and update timestamps, and targeting strategy.
+      responses:
+        "200":
+          description: A JSON object representing the feature flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlag"
+    
+    put:
+      summary: Update an existing feature flag.
+      description: |
+        This endpoint updates the properties of an existing feature flag identified by its ID.
+        The request body can include any of the updatable properties such as name, description,
+        enabled status, and targeting strategy. The response will include the updated feature flag details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartialFeatureFlag"
+      responses:
+        "200":
+          description: The updated feature flag details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlag"
+
+    delete:
+      summary: Delete a specific feature flag by ID.
+      description: |
+        This endpoint deletes a specific feature flag identified by its ID.
+      responses:
+        "204":
+          description: Feature flag deleted successfully
+
+  /api/flags/{flag_id}/evaluate:
+    parameters:
+      - name: flag_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique identifier for the feature flag
+    post:
+      summary: Evaluate a feature flag for a specific user.
+      description: |
+        This endpoint evaluates whether a feature flag is enabled for a specific user based on the targeting strategy.
+        The request body should include the user ID for which the evaluation is being performed. The response will indicate whether the feature flag is enabled for that user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - group_ids
+              properties:
+                user_id:
+                  type: string
+                  description: Unique identifier for the user being evaluated
+                group_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: List of group IDs that the user belongs to
+      responses:
+        "200":
+          description: Evaluation result indicating if the feature flag is enabled for the user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Whether the feature flag is enabled for the specified user
+components:
+  schemas:
+    FeatureFlag:
+      allOf:
+      - $ref: "#/components/schemas/FeatureFlagID"
+      - $ref: "#/components/schemas/PartialFeatureFlag"
+    FeatureFlagID:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the feature flag
+    PartialFeatureFlag:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the feature flag
+        description:
+          type: string
+          description: Description of the feature flag
+        enabled:
+          type: boolean
+          description: Whether the feature flag is enabled or not
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the feature flag was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the feature flag was last updated
+        strategies:
+          type: array
+          items:
+            oneOf:
+            - $ref: "#/components/schemas/UserTargeting"
+            - $ref: "#/components/schemas/GroupTargeting"
+            - $ref: "#/components/schemas/PercentageRollout"
+          description: Targeting strategies for the feature flag
+    UserTargeting:
+      type: object
+      required:
+      - type
+      - user_ids
+      properties:
+        type:
+          type: string
+          enum: [user_targeting]
+          description: Type of targeting strategy
+        user_ids:
+          type: array
+          items:
+            type: string
+          description: List of user IDs that the feature flag targets
+    GroupTargeting:
+      type: object
+      required:
+        - type
+        - group_ids
+      properties:
+        type:
+          type: string
+          enum: [group_targeting]
+          description: Type of targeting strategy
+        group_ids:
+          type: array
+          items:
+            type: string
+          description: List of group IDs that the feature flag targets
+    PercentageRollout:
+      type: object
+      required:
+      - type
+      - percentage
+      properties:
+        type:
+          type: string
+          enum: [percentage_rollout]
+          description: Type of targeting strategy
+        percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage of users that the feature flag targets

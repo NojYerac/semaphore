@@ -23,7 +23,7 @@ const (
 
 type GetFlagRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,11 +58,11 @@ func (*GetFlagRequest) Descriptor() ([]byte, []int) {
 	return file_flag_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetFlagRequest) GetId() int64 {
+func (x *GetFlagRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
-	return 0
+	return ""
 }
 
 type GetFlagResponse struct {
@@ -109,26 +109,26 @@ func (x *GetFlagResponse) GetFlags() *Flag {
 	return nil
 }
 
-type StreamFlagsRequest struct {
+type ListFlagsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StreamFlagsRequest) Reset() {
-	*x = StreamFlagsRequest{}
+func (x *ListFlagsRequest) Reset() {
+	*x = ListFlagsRequest{}
 	mi := &file_flag_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StreamFlagsRequest) String() string {
+func (x *ListFlagsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StreamFlagsRequest) ProtoMessage() {}
+func (*ListFlagsRequest) ProtoMessage() {}
 
-func (x *StreamFlagsRequest) ProtoReflect() protoreflect.Message {
+func (x *ListFlagsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_flag_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -140,32 +140,32 @@ func (x *StreamFlagsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StreamFlagsRequest.ProtoReflect.Descriptor instead.
-func (*StreamFlagsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListFlagsRequest.ProtoReflect.Descriptor instead.
+func (*ListFlagsRequest) Descriptor() ([]byte, []int) {
 	return file_flag_proto_rawDescGZIP(), []int{2}
 }
 
-type StreamFlagsResponse struct {
+type ListFlagsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Flags         *Flag                  `protobuf:"bytes,1,opt,name=flags,proto3" json:"flags,omitempty"`
+	Flag          *Flag                  `protobuf:"bytes,1,opt,name=flag,proto3" json:"flag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StreamFlagsResponse) Reset() {
-	*x = StreamFlagsResponse{}
+func (x *ListFlagsResponse) Reset() {
+	*x = ListFlagsResponse{}
 	mi := &file_flag_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StreamFlagsResponse) String() string {
+func (x *ListFlagsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StreamFlagsResponse) ProtoMessage() {}
+func (*ListFlagsResponse) ProtoMessage() {}
 
-func (x *StreamFlagsResponse) ProtoReflect() protoreflect.Message {
+func (x *ListFlagsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_flag_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -177,30 +177,296 @@ func (x *StreamFlagsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StreamFlagsResponse.ProtoReflect.Descriptor instead.
-func (*StreamFlagsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListFlagsResponse.ProtoReflect.Descriptor instead.
+func (*ListFlagsResponse) Descriptor() ([]byte, []int) {
 	return file_flag_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *StreamFlagsResponse) GetFlags() *Flag {
+func (x *ListFlagsResponse) GetFlag() *Flag {
 	if x != nil {
-		return x.Flags
+		return x.Flag
 	}
 	return nil
 }
 
+type CreateFlagRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flag          *Flag                  `protobuf:"bytes,1,opt,name=flag,proto3" json:"flag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateFlagRequest) Reset() {
+	*x = CreateFlagRequest{}
+	mi := &file_flag_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateFlagRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateFlagRequest) ProtoMessage() {}
+
+func (x *CreateFlagRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateFlagRequest.ProtoReflect.Descriptor instead.
+func (*CreateFlagRequest) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateFlagRequest) GetFlag() *Flag {
+	if x != nil {
+		return x.Flag
+	}
+	return nil
+}
+
+type CreateFlagResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateFlagResponse) Reset() {
+	*x = CreateFlagResponse{}
+	mi := &file_flag_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateFlagResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateFlagResponse) ProtoMessage() {}
+
+func (x *CreateFlagResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateFlagResponse.ProtoReflect.Descriptor instead.
+func (*CreateFlagResponse) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateFlagResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type UpdateFlagRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flag          *Flag                  `protobuf:"bytes,1,opt,name=flag,proto3" json:"flag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateFlagRequest) Reset() {
+	*x = UpdateFlagRequest{}
+	mi := &file_flag_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateFlagRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateFlagRequest) ProtoMessage() {}
+
+func (x *UpdateFlagRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateFlagRequest.ProtoReflect.Descriptor instead.
+func (*UpdateFlagRequest) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateFlagRequest) GetFlag() *Flag {
+	if x != nil {
+		return x.Flag
+	}
+	return nil
+}
+
+type UpdateFlagResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateFlagResponse) Reset() {
+	*x = UpdateFlagResponse{}
+	mi := &file_flag_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateFlagResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateFlagResponse) ProtoMessage() {}
+
+func (x *UpdateFlagResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateFlagResponse.ProtoReflect.Descriptor instead.
+func (*UpdateFlagResponse) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateFlagResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type DeleteFlagRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFlagRequest) Reset() {
+	*x = DeleteFlagRequest{}
+	mi := &file_flag_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFlagRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFlagRequest) ProtoMessage() {}
+
+func (x *DeleteFlagRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFlagRequest.ProtoReflect.Descriptor instead.
+func (*DeleteFlagRequest) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeleteFlagRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteFlagResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFlagResponse) Reset() {
+	*x = DeleteFlagResponse{}
+	mi := &file_flag_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFlagResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFlagResponse) ProtoMessage() {}
+
+func (x *DeleteFlagResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFlagResponse.ProtoReflect.Descriptor instead.
+func (*DeleteFlagResponse) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteFlagResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 type Flag struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Strategies    []*Strategy            `protobuf:"bytes,5,rep,name=strategies,proto3" json:"strategies,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Flag) Reset() {
 	*x = Flag{}
-	mi := &file_flag_proto_msgTypes[4]
+	mi := &file_flag_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -212,7 +478,7 @@ func (x *Flag) String() string {
 func (*Flag) ProtoMessage() {}
 
 func (x *Flag) ProtoReflect() protoreflect.Message {
-	mi := &file_flag_proto_msgTypes[4]
+	mi := &file_flag_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -225,14 +491,14 @@ func (x *Flag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Flag.ProtoReflect.Descriptor instead.
 func (*Flag) Descriptor() ([]byte, []int) {
-	return file_flag_proto_rawDescGZIP(), []int{4}
+	return file_flag_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *Flag) GetId() int64 {
+func (x *Flag) GetId() string {
 	if x != nil {
 		return x.Id
 	}
-	return 0
+	return ""
 }
 
 func (x *Flag) GetName() string {
@@ -249,6 +515,362 @@ func (x *Flag) GetDescription() string {
 	return ""
 }
 
+func (x *Flag) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *Flag) GetStrategies() []*Strategy {
+	if x != nil {
+		return x.Strategies
+	}
+	return nil
+}
+
+type Strategy struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Type  string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*Strategy_PercentageRollout
+	//	*Strategy_UserTargeting
+	//	*Strategy_GroupTargeting
+	Payload       isStrategy_Payload `protobuf_oneof:"payload"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Strategy) Reset() {
+	*x = Strategy{}
+	mi := &file_flag_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Strategy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Strategy) ProtoMessage() {}
+
+func (x *Strategy) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Strategy.ProtoReflect.Descriptor instead.
+func (*Strategy) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *Strategy) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *Strategy) GetPayload() isStrategy_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *Strategy) GetPercentageRollout() *PercentageRollout {
+	if x != nil {
+		if x, ok := x.Payload.(*Strategy_PercentageRollout); ok {
+			return x.PercentageRollout
+		}
+	}
+	return nil
+}
+
+func (x *Strategy) GetUserTargeting() *UserTargeting {
+	if x != nil {
+		if x, ok := x.Payload.(*Strategy_UserTargeting); ok {
+			return x.UserTargeting
+		}
+	}
+	return nil
+}
+
+func (x *Strategy) GetGroupTargeting() *GroupTargeting {
+	if x != nil {
+		if x, ok := x.Payload.(*Strategy_GroupTargeting); ok {
+			return x.GroupTargeting
+		}
+	}
+	return nil
+}
+
+type isStrategy_Payload interface {
+	isStrategy_Payload()
+}
+
+type Strategy_PercentageRollout struct {
+	PercentageRollout *PercentageRollout `protobuf:"bytes,2,opt,name=percentage_rollout,json=percentageRollout,proto3,oneof"`
+}
+
+type Strategy_UserTargeting struct {
+	UserTargeting *UserTargeting `protobuf:"bytes,3,opt,name=user_targeting,json=userTargeting,proto3,oneof"`
+}
+
+type Strategy_GroupTargeting struct {
+	GroupTargeting *GroupTargeting `protobuf:"bytes,4,opt,name=group_targeting,json=groupTargeting,proto3,oneof"`
+}
+
+func (*Strategy_PercentageRollout) isStrategy_Payload() {}
+
+func (*Strategy_UserTargeting) isStrategy_Payload() {}
+
+func (*Strategy_GroupTargeting) isStrategy_Payload() {}
+
+type PercentageRollout struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Percentage    int32                  `protobuf:"varint,1,opt,name=percentage,proto3" json:"percentage,omitempty"` // 0-100
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PercentageRollout) Reset() {
+	*x = PercentageRollout{}
+	mi := &file_flag_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PercentageRollout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PercentageRollout) ProtoMessage() {}
+
+func (x *PercentageRollout) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PercentageRollout.ProtoReflect.Descriptor instead.
+func (*PercentageRollout) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PercentageRollout) GetPercentage() int32 {
+	if x != nil {
+		return x.Percentage
+	}
+	return 0
+}
+
+type UserTargeting struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserTargeting) Reset() {
+	*x = UserTargeting{}
+	mi := &file_flag_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserTargeting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserTargeting) ProtoMessage() {}
+
+func (x *UserTargeting) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserTargeting.ProtoReflect.Descriptor instead.
+func (*UserTargeting) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UserTargeting) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type GroupTargeting struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupIds      []string               `protobuf:"bytes,1,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GroupTargeting) Reset() {
+	*x = GroupTargeting{}
+	mi := &file_flag_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GroupTargeting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GroupTargeting) ProtoMessage() {}
+
+func (x *GroupTargeting) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GroupTargeting.ProtoReflect.Descriptor instead.
+func (*GroupTargeting) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GroupTargeting) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
+}
+
+type EvaluateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FlagId        string                 `protobuf:"bytes,1,opt,name=flag_id,json=flagId,proto3" json:"flag_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	GroupIds      []string               `protobuf:"bytes,3,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluateRequest) Reset() {
+	*x = EvaluateRequest{}
+	mi := &file_flag_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluateRequest) ProtoMessage() {}
+
+func (x *EvaluateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluateRequest.ProtoReflect.Descriptor instead.
+func (*EvaluateRequest) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *EvaluateRequest) GetFlagId() string {
+	if x != nil {
+		return x.FlagId
+	}
+	return ""
+}
+
+func (x *EvaluateRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *EvaluateRequest) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
+}
+
+type EvaluateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluateResponse) Reset() {
+	*x = EvaluateResponse{}
+	mi := &file_flag_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluateResponse) ProtoMessage() {}
+
+func (x *EvaluateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_flag_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluateResponse.ProtoReflect.Descriptor instead.
+func (*EvaluateResponse) Descriptor() ([]byte, []int) {
+	return file_flag_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *EvaluateResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
 var File_flag_proto protoreflect.FileDescriptor
 
 const file_flag_proto_rawDesc = "" +
@@ -256,21 +878,66 @@ const file_flag_proto_rawDesc = "" +
 	"\n" +
 	"flag.proto\x12\x04flag\" \n" +
 	"\x0eGetFlagRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"3\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"3\n" +
 	"\x0fGetFlagResponse\x12 \n" +
 	"\x05flags\x18\x01 \x01(\v2\n" +
-	".flag.FlagR\x05flags\"\x14\n" +
-	"\x12StreamFlagsRequest\"7\n" +
-	"\x13StreamFlagsResponse\x12 \n" +
-	"\x05flags\x18\x01 \x01(\v2\n" +
-	".flag.FlagR\x05flags\"L\n" +
+	".flag.FlagR\x05flags\"\x12\n" +
+	"\x10ListFlagsRequest\"3\n" +
+	"\x11ListFlagsResponse\x12\x1e\n" +
+	"\x04flag\x18\x01 \x01(\v2\n" +
+	".flag.FlagR\x04flag\"3\n" +
+	"\x11CreateFlagRequest\x12\x1e\n" +
+	"\x04flag\x18\x01 \x01(\v2\n" +
+	".flag.FlagR\x04flag\"$\n" +
+	"\x12CreateFlagResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"3\n" +
+	"\x11UpdateFlagRequest\x12\x1e\n" +
+	"\x04flag\x18\x01 \x01(\v2\n" +
+	".flag.FlagR\x04flag\".\n" +
+	"\x12UpdateFlagResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"#\n" +
+	"\x11DeleteFlagRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\".\n" +
+	"\x12DeleteFlagResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x96\x01\n" +
 	"\x04Flag\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription2\x8b\x01\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x12.\n" +
+	"\n" +
+	"strategies\x18\x05 \x03(\v2\x0e.flag.StrategyR\n" +
+	"strategies\"\xf2\x01\n" +
+	"\bStrategy\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12H\n" +
+	"\x12percentage_rollout\x18\x02 \x01(\v2\x17.flag.PercentageRolloutH\x00R\x11percentageRollout\x12<\n" +
+	"\x0euser_targeting\x18\x03 \x01(\v2\x13.flag.UserTargetingH\x00R\ruserTargeting\x12?\n" +
+	"\x0fgroup_targeting\x18\x04 \x01(\v2\x14.flag.GroupTargetingH\x00R\x0egroupTargetingB\t\n" +
+	"\apayload\"3\n" +
+	"\x11PercentageRollout\x12\x1e\n" +
+	"\n" +
+	"percentage\x18\x01 \x01(\x05R\n" +
+	"percentage\"*\n" +
+	"\rUserTargeting\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"-\n" +
+	"\x0eGroupTargeting\x12\x1b\n" +
+	"\tgroup_ids\x18\x01 \x03(\tR\bgroupIds\"`\n" +
+	"\x0fEvaluateRequest\x12\x17\n" +
+	"\aflag_id\x18\x01 \x01(\tR\x06flagId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tgroup_ids\x18\x03 \x03(\tR\bgroupIds\",\n" +
+	"\x10EvaluateResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled2\x83\x03\n" +
 	"\vFlagService\x126\n" +
-	"\aGetFlag\x12\x14.flag.GetFlagRequest\x1a\x15.flag.GetFlagResponse\x12D\n" +
-	"\vStreamFlags\x12\x18.flag.StreamFlagsRequest\x1a\x19.flag.StreamFlagsResponse0\x01B\tZ\apb/flagb\x06proto3"
+	"\aGetFlag\x12\x14.flag.GetFlagRequest\x1a\x15.flag.GetFlagResponse\x12>\n" +
+	"\tListFlags\x12\x16.flag.ListFlagsRequest\x1a\x17.flag.ListFlagsResponse0\x01\x12?\n" +
+	"\n" +
+	"CreateFlag\x12\x17.flag.CreateFlagRequest\x1a\x18.flag.CreateFlagResponse\x12?\n" +
+	"\n" +
+	"UpdateFlag\x12\x17.flag.UpdateFlagRequest\x1a\x18.flag.UpdateFlagResponse\x12?\n" +
+	"\n" +
+	"DeleteFlag\x12\x17.flag.DeleteFlagRequest\x1a\x18.flag.DeleteFlagResponse\x129\n" +
+	"\bEvaluate\x12\x15.flag.EvaluateRequest\x1a\x16.flag.EvaluateResponseB\tZ\apb/flagb\x06proto3"
 
 var (
 	file_flag_proto_rawDescOnce sync.Once
@@ -284,26 +951,52 @@ func file_flag_proto_rawDescGZIP() []byte {
 	return file_flag_proto_rawDescData
 }
 
-var file_flag_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_flag_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_flag_proto_goTypes = []any{
-	(*GetFlagRequest)(nil),      // 0: flag.GetFlagRequest
-	(*GetFlagResponse)(nil),     // 1: flag.GetFlagResponse
-	(*StreamFlagsRequest)(nil),  // 2: flag.StreamFlagsRequest
-	(*StreamFlagsResponse)(nil), // 3: flag.StreamFlagsResponse
-	(*Flag)(nil),                // 4: flag.Flag
+	(*GetFlagRequest)(nil),     // 0: flag.GetFlagRequest
+	(*GetFlagResponse)(nil),    // 1: flag.GetFlagResponse
+	(*ListFlagsRequest)(nil),   // 2: flag.ListFlagsRequest
+	(*ListFlagsResponse)(nil),  // 3: flag.ListFlagsResponse
+	(*CreateFlagRequest)(nil),  // 4: flag.CreateFlagRequest
+	(*CreateFlagResponse)(nil), // 5: flag.CreateFlagResponse
+	(*UpdateFlagRequest)(nil),  // 6: flag.UpdateFlagRequest
+	(*UpdateFlagResponse)(nil), // 7: flag.UpdateFlagResponse
+	(*DeleteFlagRequest)(nil),  // 8: flag.DeleteFlagRequest
+	(*DeleteFlagResponse)(nil), // 9: flag.DeleteFlagResponse
+	(*Flag)(nil),               // 10: flag.Flag
+	(*Strategy)(nil),           // 11: flag.Strategy
+	(*PercentageRollout)(nil),  // 12: flag.PercentageRollout
+	(*UserTargeting)(nil),      // 13: flag.UserTargeting
+	(*GroupTargeting)(nil),     // 14: flag.GroupTargeting
+	(*EvaluateRequest)(nil),    // 15: flag.EvaluateRequest
+	(*EvaluateResponse)(nil),   // 16: flag.EvaluateResponse
 }
 var file_flag_proto_depIdxs = []int32{
-	4, // 0: flag.GetFlagResponse.flags:type_name -> flag.Flag
-	4, // 1: flag.StreamFlagsResponse.flags:type_name -> flag.Flag
-	0, // 2: flag.FlagService.GetFlag:input_type -> flag.GetFlagRequest
-	2, // 3: flag.FlagService.StreamFlags:input_type -> flag.StreamFlagsRequest
-	1, // 4: flag.FlagService.GetFlag:output_type -> flag.GetFlagResponse
-	3, // 5: flag.FlagService.StreamFlags:output_type -> flag.StreamFlagsResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	10, // 0: flag.GetFlagResponse.flags:type_name -> flag.Flag
+	10, // 1: flag.ListFlagsResponse.flag:type_name -> flag.Flag
+	10, // 2: flag.CreateFlagRequest.flag:type_name -> flag.Flag
+	10, // 3: flag.UpdateFlagRequest.flag:type_name -> flag.Flag
+	11, // 4: flag.Flag.strategies:type_name -> flag.Strategy
+	12, // 5: flag.Strategy.percentage_rollout:type_name -> flag.PercentageRollout
+	13, // 6: flag.Strategy.user_targeting:type_name -> flag.UserTargeting
+	14, // 7: flag.Strategy.group_targeting:type_name -> flag.GroupTargeting
+	0,  // 8: flag.FlagService.GetFlag:input_type -> flag.GetFlagRequest
+	2,  // 9: flag.FlagService.ListFlags:input_type -> flag.ListFlagsRequest
+	4,  // 10: flag.FlagService.CreateFlag:input_type -> flag.CreateFlagRequest
+	6,  // 11: flag.FlagService.UpdateFlag:input_type -> flag.UpdateFlagRequest
+	8,  // 12: flag.FlagService.DeleteFlag:input_type -> flag.DeleteFlagRequest
+	15, // 13: flag.FlagService.Evaluate:input_type -> flag.EvaluateRequest
+	1,  // 14: flag.FlagService.GetFlag:output_type -> flag.GetFlagResponse
+	3,  // 15: flag.FlagService.ListFlags:output_type -> flag.ListFlagsResponse
+	5,  // 16: flag.FlagService.CreateFlag:output_type -> flag.CreateFlagResponse
+	7,  // 17: flag.FlagService.UpdateFlag:output_type -> flag.UpdateFlagResponse
+	9,  // 18: flag.FlagService.DeleteFlag:output_type -> flag.DeleteFlagResponse
+	16, // 19: flag.FlagService.Evaluate:output_type -> flag.EvaluateResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_flag_proto_init() }
@@ -311,13 +1004,18 @@ func file_flag_proto_init() {
 	if File_flag_proto != nil {
 		return
 	}
+	file_flag_proto_msgTypes[11].OneofWrappers = []any{
+		(*Strategy_PercentageRollout)(nil),
+		(*Strategy_UserTargeting)(nil),
+		(*Strategy_GroupTargeting)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flag_proto_rawDesc), len(file_flag_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
