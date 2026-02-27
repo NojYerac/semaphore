@@ -14,7 +14,7 @@ message GetFlagResponse {
 message ListFlagsRequest {}
 
 message ListFlagsResponse {
-    Flag flags = 1;
+    Flag flag = 1;
 }
 
 message CreateFlagRequest {

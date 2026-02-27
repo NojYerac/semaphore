@@ -147,7 +147,7 @@ func (*ListFlagsRequest) Descriptor() ([]byte, []int) {
 
 type ListFlagsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Flags         *Flag                  `protobuf:"bytes,1,opt,name=flags,proto3" json:"flags,omitempty"`
+	Flag          *Flag                  `protobuf:"bytes,1,opt,name=flag,proto3" json:"flag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -182,9 +182,9 @@ func (*ListFlagsResponse) Descriptor() ([]byte, []int) {
 	return file_flag_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ListFlagsResponse) GetFlags() *Flag {
+func (x *ListFlagsResponse) GetFlag() *Flag {
 	if x != nil {
-		return x.Flags
+		return x.Flag
 	}
 	return nil
 }
@@ -771,6 +771,7 @@ type EvaluateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FlagId        string                 `protobuf:"bytes,1,opt,name=flag_id,json=flagId,proto3" json:"flag_id,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	GroupIds      []string               `protobuf:"bytes,3,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -817,6 +818,13 @@ func (x *EvaluateRequest) GetUserId() string {
 		return x.UserId
 	}
 	return ""
+}
+
+func (x *EvaluateRequest) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
 }
 
 type EvaluateResponse struct {
@@ -874,10 +882,10 @@ const file_flag_proto_rawDesc = "" +
 	"\x0fGetFlagResponse\x12 \n" +
 	"\x05flags\x18\x01 \x01(\v2\n" +
 	".flag.FlagR\x05flags\"\x12\n" +
-	"\x10ListFlagsRequest\"5\n" +
-	"\x11ListFlagsResponse\x12 \n" +
-	"\x05flags\x18\x01 \x01(\v2\n" +
-	".flag.FlagR\x05flags\"3\n" +
+	"\x10ListFlagsRequest\"3\n" +
+	"\x11ListFlagsResponse\x12\x1e\n" +
+	"\x04flag\x18\x01 \x01(\v2\n" +
+	".flag.FlagR\x04flag\"3\n" +
 	"\x11CreateFlagRequest\x12\x1e\n" +
 	"\x04flag\x18\x01 \x01(\v2\n" +
 	".flag.FlagR\x04flag\"$\n" +
@@ -913,10 +921,11 @@ const file_flag_proto_rawDesc = "" +
 	"\rUserTargeting\x12\x19\n" +
 	"\buser_ids\x18\x01 \x03(\tR\auserIds\"-\n" +
 	"\x0eGroupTargeting\x12\x1b\n" +
-	"\tgroup_ids\x18\x01 \x03(\tR\bgroupIds\"C\n" +
+	"\tgroup_ids\x18\x01 \x03(\tR\bgroupIds\"`\n" +
 	"\x0fEvaluateRequest\x12\x17\n" +
 	"\aflag_id\x18\x01 \x01(\tR\x06flagId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\",\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tgroup_ids\x18\x03 \x03(\tR\bgroupIds\",\n" +
 	"\x10EvaluateResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled2\x83\x03\n" +
 	"\vFlagService\x126\n" +
@@ -964,7 +973,7 @@ var file_flag_proto_goTypes = []any{
 }
 var file_flag_proto_depIdxs = []int32{
 	10, // 0: flag.GetFlagResponse.flags:type_name -> flag.Flag
-	10, // 1: flag.ListFlagsResponse.flags:type_name -> flag.Flag
+	10, // 1: flag.ListFlagsResponse.flag:type_name -> flag.Flag
 	10, // 2: flag.CreateFlagRequest.flag:type_name -> flag.Flag
 	10, // 3: flag.UpdateFlagRequest.flag:type_name -> flag.Flag
 	11, // 4: flag.Flag.strategies:type_name -> flag.Strategy

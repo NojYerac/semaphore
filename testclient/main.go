@@ -43,6 +43,6 @@ func main() {
 			}
 			panic(err)
 		}
-		logger.Infof("Received flag: %s", resp.Flags.Name)
+		logger.Infof("Received flag: %s", resp.Flag.Name)
 	}
 }

@@ -35,7 +35,7 @@ func (s *FlagService) ListFlags(req *flag.ListFlagsRequest, srv flag.FlagService
 			return err
 		}
 		if err := srv.Send(&flag.ListFlagsResponse{
-			Flags: pbFlag,
+			Flag: pbFlag,
 		}); err != nil {
 			return err
 		}
