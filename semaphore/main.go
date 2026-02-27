@@ -6,24 +6,24 @@ import (
 	"os/signal"
 	"sync"
 
-	libdb "github.com/nojyerac/go-lib/pkg/db"
-	"github.com/nojyerac/go-lib/pkg/health"
-	"github.com/nojyerac/go-lib/pkg/log"
-	"github.com/nojyerac/go-lib/pkg/metrics"
-	"github.com/nojyerac/go-lib/pkg/tracing"
-	"github.com/nojyerac/go-lib/pkg/transport"
-	"github.com/nojyerac/go-lib/pkg/transport/grpc"
-	libhttp "github.com/nojyerac/go-lib/pkg/transport/http"
-	"github.com/nojyerac/go-lib/pkg/version"
+	libdb "github.com/nojyerac/go-lib/db"
+	"github.com/nojyerac/go-lib/health"
+	"github.com/nojyerac/go-lib/log"
+	"github.com/nojyerac/go-lib/metrics"
+	"github.com/nojyerac/go-lib/tracing"
+	"github.com/nojyerac/go-lib/transport"
+	"github.com/nojyerac/go-lib/transport/grpc"
+	libhttp "github.com/nojyerac/go-lib/transport/http"
+	"github.com/nojyerac/go-lib/version"
 
 	"github.com/nojyerac/semaphore/config"
-	"github.com/nojyerac/semaphore/data"
 	"github.com/nojyerac/semaphore/data/db"
 	"github.com/nojyerac/semaphore/transport/http"
 	"github.com/nojyerac/semaphore/transport/rpc"
 )
 
 func main() {
+	// Initialize configuration
 	version.SetSemVer("0.0.0")
 	version.SetServiceName("semaphore")
 	v := version.GetVersion()
@@ -31,60 +31,72 @@ func main() {
 	if err := config.InitAndValidate(); err != nil {
 		panic(err)
 	}
+
+	// Setup shutdown signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	logger := log.NewLogger(config.LogConfig).With().Str("service", v.Name).Logger()
-	ctx = logger.WithContext(ctx)
+	// Initialize telemetry
+	logger := log.NewLogger(config.LogConfig).WithField("service", v.Name)
+	log.SetDefaultCtxLogger(logger)
+	ctx = log.WithLogger(ctx, logger)
 
-	tracer := tracing.NewTracerProvider(config.TraceConfig)
-	tracing.SetGlobal(tracer)
+	tp := tracing.NewTracerProvider(config.TraceConfig)
+	tracing.SetGlobal(tp)
 
-	meter, metricHandler, err := metrics.NewMeterProvider(nil)
+	mp, metricHandler, err := metrics.NewMetricProvider()
 	if err != nil {
-		logger.Panic().Err(err).Msg("failed to create meter provider")
+		logger.WithError(err).Panic("failed to create meter provider")
 	}
-	metrics.SetGlobal(meter)
+	metrics.SetGlobal(mp)
 
 	checker := health.NewChecker(config.HealthConfig)
 
-	database := libdb.NewDatabase(config.DBConfig, libdb.WithLogger(&logger))
+	// Initialize data sources
+	database := libdb.NewDatabase(
+		config.DBConfig,
+		libdb.WithLogger(logger),
+		libdb.WithHealthChecker(checker),
+	)
 	if err := database.Open(ctx); err != nil {
-		logger.Panic().Err(err).Msg("failed to connect to database")
+		logger.WithError(err).Panic("failed to connect to database")
 	}
 
-	source := data.NewSource(db.New(database))
+	source, err := db.NewDataSource(ctx, database)
+	if err != nil {
+		logger.WithError(err).Panic("failed to create data source")
+	}
 
+	// Initialize transports
 	httpServer := libhttp.NewServer(
 		config.HTTPConfig,
-		libhttp.WithLogger(&logger),
-		libhttp.WithHealthCheck(checker),
-		libhttp.WithMetricHandler(metricHandler),
+		libhttp.WithLogger(logger),
+		libhttp.WithHealthChecker(checker),
+		libhttp.WithMetricsHandler(metricHandler),
 	)
-	http.RegisterRoutes(source, httpServer.APIRoutes())
+	http.RegisterRoutes(source, httpServer)
 
-	if err := grpc.SetGrpcLogger(&logger); err != nil {
-		logger.Panic().Err(err).Msg("failed to set gRPC logger")
-	}
+	grpc.SetLogger(logger)
 	grpcServer := grpc.NewServer(rpc.RegisterServices(source))
 
-	trans, err := transport.NewTLSServer(
+	trans, err := transport.NewServer(
 		config.TransConfig,
 		transport.WithHTTP(httpServer),
 		transport.WithGRPC(grpcServer),
 	)
 	if err != nil {
-		logger.Panic().Err(err).Msg("failed to initialize transport")
+		logger.WithError(err).Panic("failed to initialize transport")
 	}
 
+	// Start everything and wait for shutdown signal
 	wg := new(sync.WaitGroup)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := checker.Start(ctx); err != nil && err != context.Canceled {
-			logger.Panic().Err(err).Msg("health checker failed")
+			logger.WithError(err).Panic("health checker failed")
 		}
 	}()
 
@@ -92,14 +104,14 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := trans.Start(ctx); err != nil {
-			logger.Panic().Err(err).Msg("transport failed")
+			logger.WithError(err).Panic("transport failed")
 		}
 	}()
 
-	logger.Info().Msg("starting")
+	logger.Info("starting")
 	<-sigChan
 	cancel()
-	logger.Info().Msg("stopping")
+	logger.Info("stopping")
 	wg.Wait()
-	logger.Info().Msg("stopped")
+	logger.Info("stopped")
 }

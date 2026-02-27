@@ -1,0 +1,29 @@
+syntax = "proto3";
+package flag;
+
+option go_package = "pb/flag";
+
+message GetFlagRequest {
+    int64 id = 1;
+}
+
+message GetFlagResponse {
+    Flag flags = 1;
+}
+
+message StreamFlagsRequest {}
+
+message StreamFlagsResponse {
+    Flag flags = 1;
+}
+
+message Flag {
+    int64 id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+service FlagService {
+    rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+    rpc StreamFlags(StreamFlagsRequest) returns (stream StreamFlagsResponse);
+}

@@ -1,16 +1,46 @@
 package db
 
 import (
+	"context"
+
+	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
-	"github.com/nojyerac/go-lib/pkg/db"
+	"github.com/nojyerac/go-lib/db"
+	"github.com/nojyerac/semaphore/data"
 )
 
-type DB struct {
+var _ data.Source = (*DataSource)(nil)
+
+type DataSource struct {
 	db db.Database
 }
 
-func New(database db.Database) *DB {
-	return &DB{
+func NewDataSource(ctx context.Context, database db.Database) (*DataSource, error) {
+	dataSource := &DataSource{
 		db: database,
 	}
+	err := dataSource.Migrate(ctx)
+	return dataSource, err
+}
+
+func (d *DataSource) Migrate(ctx context.Context) error {
+	_, err := d.db.Exec(ctx, `
+	CREATE TABLE IF NOT EXISTS flags (
+		id SERIAL PRIMARY KEY,
+		name TEXT NOT NULL,
+		enabled BOOLEAN NOT NULL
+	);
+	`)
+	return err
+}
+
+func (d *DataSource) GetFlags(ctx context.Context) ([]data.Flag, error) {
+	query := sq.Select("id", "name", "enabled").From("flags")
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
+	flags := make([]data.Flag, 0)
+	err = d.db.Select(ctx, &flags, sql, args...)
+	return flags, err
 }

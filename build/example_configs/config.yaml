@@ -2,9 +2,13 @@
 log_config_on_init: True
 human_friendly: True
 log_level: debug
+exporter_type: "stdout"
+
+no_tls: True
+port: 8080
 
 database_connection_string: "postgres://localhost:5432/postgres?sslmode=disable"
 
-tls_public_cert: "example_configs/testdata/pub.crt"
-tls_private_key: "example_configs/testdata/priv.key"
-tls_root_ca: "example_configs/testdata/ca.crt"
+# tls_public_cert: "example_configs/testdata/pub.crt"
+# tls_private_key: "example_configs/testdata/priv.key"
+# tls_root_ca: "example_configs/testdata/ca.crt"
