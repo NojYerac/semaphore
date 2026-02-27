@@ -19,8 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FlagService_GetFlag_FullMethodName     = "/flag.FlagService/GetFlag"
-	FlagService_StreamFlags_FullMethodName = "/flag.FlagService/StreamFlags"
+	FlagService_GetFlag_FullMethodName    = "/flag.FlagService/GetFlag"
+	FlagService_ListFlags_FullMethodName  = "/flag.FlagService/ListFlags"
+	FlagService_CreateFlag_FullMethodName = "/flag.FlagService/CreateFlag"
+	FlagService_UpdateFlag_FullMethodName = "/flag.FlagService/UpdateFlag"
+	FlagService_DeleteFlag_FullMethodName = "/flag.FlagService/DeleteFlag"
+	FlagService_Evaluate_FullMethodName   = "/flag.FlagService/Evaluate"
 )
 
 // FlagServiceClient is the client API for FlagService service.
@@ -28,7 +32,11 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FlagServiceClient interface {
 	GetFlag(ctx context.Context, in *GetFlagRequest, opts ...grpc.CallOption) (*GetFlagResponse, error)
-	StreamFlags(ctx context.Context, in *StreamFlagsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamFlagsResponse], error)
+	ListFlags(ctx context.Context, in *ListFlagsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListFlagsResponse], error)
+	CreateFlag(ctx context.Context, in *CreateFlagRequest, opts ...grpc.CallOption) (*CreateFlagResponse, error)
+	UpdateFlag(ctx context.Context, in *UpdateFlagRequest, opts ...grpc.CallOption) (*UpdateFlagResponse, error)
+	DeleteFlag(ctx context.Context, in *DeleteFlagRequest, opts ...grpc.CallOption) (*DeleteFlagResponse, error)
+	Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error)
 }
 
 type flagServiceClient struct {
@@ -49,13 +57,13 @@ func (c *flagServiceClient) GetFlag(ctx context.Context, in *GetFlagRequest, opt
 	return out, nil
 }
 
-func (c *flagServiceClient) StreamFlags(ctx context.Context, in *StreamFlagsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamFlagsResponse], error) {
+func (c *flagServiceClient) ListFlags(ctx context.Context, in *ListFlagsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListFlagsResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &FlagService_ServiceDesc.Streams[0], FlagService_StreamFlags_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &FlagService_ServiceDesc.Streams[0], FlagService_ListFlags_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[StreamFlagsRequest, StreamFlagsResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ListFlagsRequest, ListFlagsResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -66,14 +74,58 @@ func (c *flagServiceClient) StreamFlags(ctx context.Context, in *StreamFlagsRequ
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FlagService_StreamFlagsClient = grpc.ServerStreamingClient[StreamFlagsResponse]
+type FlagService_ListFlagsClient = grpc.ServerStreamingClient[ListFlagsResponse]
+
+func (c *flagServiceClient) CreateFlag(ctx context.Context, in *CreateFlagRequest, opts ...grpc.CallOption) (*CreateFlagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateFlagResponse)
+	err := c.cc.Invoke(ctx, FlagService_CreateFlag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flagServiceClient) UpdateFlag(ctx context.Context, in *UpdateFlagRequest, opts ...grpc.CallOption) (*UpdateFlagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateFlagResponse)
+	err := c.cc.Invoke(ctx, FlagService_UpdateFlag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flagServiceClient) DeleteFlag(ctx context.Context, in *DeleteFlagRequest, opts ...grpc.CallOption) (*DeleteFlagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFlagResponse)
+	err := c.cc.Invoke(ctx, FlagService_DeleteFlag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *flagServiceClient) Evaluate(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EvaluateResponse)
+	err := c.cc.Invoke(ctx, FlagService_Evaluate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // FlagServiceServer is the server API for FlagService service.
 // All implementations must embed UnimplementedFlagServiceServer
 // for forward compatibility.
 type FlagServiceServer interface {
 	GetFlag(context.Context, *GetFlagRequest) (*GetFlagResponse, error)
-	StreamFlags(*StreamFlagsRequest, grpc.ServerStreamingServer[StreamFlagsResponse]) error
+	ListFlags(*ListFlagsRequest, grpc.ServerStreamingServer[ListFlagsResponse]) error
+	CreateFlag(context.Context, *CreateFlagRequest) (*CreateFlagResponse, error)
+	UpdateFlag(context.Context, *UpdateFlagRequest) (*UpdateFlagResponse, error)
+	DeleteFlag(context.Context, *DeleteFlagRequest) (*DeleteFlagResponse, error)
+	Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error)
 	mustEmbedUnimplementedFlagServiceServer()
 }
 
@@ -87,8 +139,20 @@ type UnimplementedFlagServiceServer struct{}
 func (UnimplementedFlagServiceServer) GetFlag(context.Context, *GetFlagRequest) (*GetFlagResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetFlag not implemented")
 }
-func (UnimplementedFlagServiceServer) StreamFlags(*StreamFlagsRequest, grpc.ServerStreamingServer[StreamFlagsResponse]) error {
-	return status.Error(codes.Unimplemented, "method StreamFlags not implemented")
+func (UnimplementedFlagServiceServer) ListFlags(*ListFlagsRequest, grpc.ServerStreamingServer[ListFlagsResponse]) error {
+	return status.Error(codes.Unimplemented, "method ListFlags not implemented")
+}
+func (UnimplementedFlagServiceServer) CreateFlag(context.Context, *CreateFlagRequest) (*CreateFlagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateFlag not implemented")
+}
+func (UnimplementedFlagServiceServer) UpdateFlag(context.Context, *UpdateFlagRequest) (*UpdateFlagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateFlag not implemented")
+}
+func (UnimplementedFlagServiceServer) DeleteFlag(context.Context, *DeleteFlagRequest) (*DeleteFlagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteFlag not implemented")
+}
+func (UnimplementedFlagServiceServer) Evaluate(context.Context, *EvaluateRequest) (*EvaluateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Evaluate not implemented")
 }
 func (UnimplementedFlagServiceServer) mustEmbedUnimplementedFlagServiceServer() {}
 func (UnimplementedFlagServiceServer) testEmbeddedByValue()                     {}
@@ -129,16 +193,88 @@ func _FlagService_GetFlag_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FlagService_StreamFlags_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamFlagsRequest)
+func _FlagService_ListFlags_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListFlagsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(FlagServiceServer).StreamFlags(m, &grpc.GenericServerStream[StreamFlagsRequest, StreamFlagsResponse]{ServerStream: stream})
+	return srv.(FlagServiceServer).ListFlags(m, &grpc.GenericServerStream[ListFlagsRequest, ListFlagsResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type FlagService_StreamFlagsServer = grpc.ServerStreamingServer[StreamFlagsResponse]
+type FlagService_ListFlagsServer = grpc.ServerStreamingServer[ListFlagsResponse]
+
+func _FlagService_CreateFlag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateFlagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlagServiceServer).CreateFlag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlagService_CreateFlag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlagServiceServer).CreateFlag(ctx, req.(*CreateFlagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlagService_UpdateFlag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateFlagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlagServiceServer).UpdateFlag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlagService_UpdateFlag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlagServiceServer).UpdateFlag(ctx, req.(*UpdateFlagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlagService_DeleteFlag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFlagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlagServiceServer).DeleteFlag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlagService_DeleteFlag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlagServiceServer).DeleteFlag(ctx, req.(*DeleteFlagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FlagService_Evaluate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EvaluateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FlagServiceServer).Evaluate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FlagService_Evaluate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FlagServiceServer).Evaluate(ctx, req.(*EvaluateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 // FlagService_ServiceDesc is the grpc.ServiceDesc for FlagService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -151,11 +287,27 @@ var FlagService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetFlag",
 			Handler:    _FlagService_GetFlag_Handler,
 		},
+		{
+			MethodName: "CreateFlag",
+			Handler:    _FlagService_CreateFlag_Handler,
+		},
+		{
+			MethodName: "UpdateFlag",
+			Handler:    _FlagService_UpdateFlag_Handler,
+		},
+		{
+			MethodName: "DeleteFlag",
+			Handler:    _FlagService_DeleteFlag_Handler,
+		},
+		{
+			MethodName: "Evaluate",
+			Handler:    _FlagService_Evaluate_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "StreamFlags",
-			Handler:       _FlagService_StreamFlags_Handler,
+			StreamName:    "ListFlags",
+			Handler:       _FlagService_ListFlags_Handler,
 			ServerStreams: true,
 		},
 	},

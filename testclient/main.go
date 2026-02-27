@@ -30,7 +30,7 @@ func main() {
 	}
 	defer cc.Close()
 	flagClient := flag.NewFlagServiceClient(cc)
-	stream, err := flagClient.StreamFlags(ctx, &flag.StreamFlagsRequest{})
+	stream, err := flagClient.ListFlags(ctx, &flag.ListFlagsRequest{})
 	if err != nil {
 		panic(err)
 	}

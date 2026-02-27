@@ -23,18 +23,19 @@ type FlagService struct {
 	source data.Source
 }
 
-func (s *FlagService) StreamFlags(req *flag.StreamFlagsRequest, srv flag.FlagService_StreamFlagsServer) error {
+func (s *FlagService) StreamFlags(req *flag.ListFlagsRequest, srv flag.FlagService_ListFlagsServer) error {
 	ctx := srv.Context()
 	flags, err := s.source.GetFlags(ctx)
 	if err != nil {
 		return err
 	}
 	for _, f := range flags {
-		if err := srv.Send(&flag.StreamFlagsResponse{
-			Flags: &flag.Flag{
-				Id:   int64(f.ID),
-				Name: f.Name,
-			},
+		pbFlag, err := f.ToProto()
+		if err != nil {
+			return err
+		}
+		if err := srv.Send(&flag.ListFlagsResponse{
+			Flags: pbFlag,
 		}); err != nil {
 			return err
 		}
