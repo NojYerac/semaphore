@@ -1,5 +1,5 @@
 packages:
-  github.com/nojyerac/semafore:
+  github.com/nojyerac/semaphore:
     config:
       recursive: True
       keeptree: True

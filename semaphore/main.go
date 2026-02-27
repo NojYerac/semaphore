@@ -23,6 +23,7 @@ import (
 )
 
 func main() {
+	// Initialize configuration
 	version.SetSemVer("0.0.0")
 	version.SetServiceName("semaphore")
 	v := version.GetVersion()
@@ -30,11 +31,15 @@ func main() {
 	if err := config.InitAndValidate(); err != nil {
 		panic(err)
 	}
+
+	// Setup shutdown signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	logger := log.NewLogger(config.LogConfig).WithField("service", v.Name).Logger
+	// Initialize telemetry
+	logger := log.NewLogger(config.LogConfig).WithField("service", v.Name)
+	log.SetDefaultCtxLogger(logger)
 	ctx = log.WithLogger(ctx, logger)
 
 	tp := tracing.NewTracerProvider(config.TraceConfig)
@@ -48,7 +53,12 @@ func main() {
 
 	checker := health.NewChecker(config.HealthConfig)
 
-	database := libdb.NewDatabase(config.DBConfig, libdb.WithLogger(logger), libdb.WithHealthChecker(checker))
+	// Initialize data sources
+	database := libdb.NewDatabase(
+		config.DBConfig,
+		libdb.WithLogger(logger),
+		libdb.WithHealthChecker(checker),
+	)
 	if err := database.Open(ctx); err != nil {
 		logger.WithError(err).Panic("failed to connect to database")
 	}
@@ -58,6 +68,7 @@ func main() {
 		logger.WithError(err).Panic("failed to create data source")
 	}
 
+	// Initialize transports
 	httpServer := libhttp.NewServer(
 		config.HTTPConfig,
 		libhttp.WithLogger(logger),
@@ -69,7 +80,7 @@ func main() {
 	grpc.SetLogger(logger)
 	grpcServer := grpc.NewServer(rpc.RegisterServices(source))
 
-	trans, err := transport.NewTLSServer(
+	trans, err := transport.NewServer(
 		config.TransConfig,
 		transport.WithHTTP(httpServer),
 		transport.WithGRPC(grpcServer),
@@ -78,6 +89,7 @@ func main() {
 		logger.WithError(err).Panic("failed to initialize transport")
 	}
 
+	// Start everything and wait for shutdown signal
 	wg := new(sync.WaitGroup)
 
 	wg.Add(1)
