@@ -9,6 +9,25 @@ import (
 	"github.com/nojyerac/semaphore/pb/flag"
 )
 
+type DataEngine interface {
+	Engine
+	Source
+}
+
+type dataEngine struct {
+	Engine
+	Source
+}
+
+var _ DataEngine = (*dataEngine)(nil)
+
+func NewDataEngine(source Source, engine Engine) DataEngine {
+	return &dataEngine{
+		Engine: engine,
+		Source: source,
+	}
+}
+
 type Engine interface {
 	EvaluateFlag(ctx context.Context, flagName string, userID string, groupIDs []string) (bool, error)
 }
@@ -64,12 +83,29 @@ func (f *FeatureFlag) ToProto() (*flag.Flag, error) {
 }
 
 // Strategy defines an evaluation rule.
-// Type is one of "percentage", "user", or "group".
+// Type is one of "percentage_rollout", "user_targeting", or "group_targeting".
 // Payload is a raw JSON blob containing the strategy specific data.
-// The engine unmarshals it based on the type.
+// The engine unmarshals it based on the Type value.
 type Strategy struct {
 	Type    string          `json:"type" db:"type"`
 	Payload json.RawMessage `json:"payload" db:"payload"`
+}
+
+func (s *Strategy) Scan(value interface{}) error {
+	*s = Strategy{}
+	if value == nil {
+		s.Type = ""
+		s.Payload = nil
+		return nil
+	}
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid type for strategy: %T", value)
+	}
+	if err := json.Unmarshal(b, s); err != nil {
+		return fmt.Errorf("failed to unmarshal strategy: %w", err)
+	}
+	return nil
 }
 
 func (s *Strategy) ToProto() (*flag.Strategy, error) {
@@ -96,10 +132,18 @@ func payloadToProto(strategyType string, payload json.RawMessage) interface{} {
 		return nil
 	}
 	switch strategyType {
-	case "percentage":
+	case "percentage_rollout":
+		v, ok := data["percentage"]
+		if !ok {
+			return nil
+		}
+		f, ok := v.(float64)
+		if !ok {
+			return nil
+		}
 		return &flag.Strategy_PercentageRollout{
 			PercentageRollout: &flag.PercentageRollout{
-				Percentage: int32(data["percentage"].(float64)),
+				Percentage: int32(f),
 			},
 		}
 	case "user_targeting":

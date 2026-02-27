@@ -171,11 +171,11 @@ components:
         enabled:
           type: boolean
           description: Whether the feature flag is enabled or not
-        created_at:
+        createdAt:
           type: string
           format: date-time
           description: Timestamp when the feature flag was created
-        updated_at:
+        updatedAt:
           type: string
           format: date-time
           description: Timestamp when the feature flag was last updated

@@ -23,7 +23,7 @@ type FlagService struct {
 	source data.Source
 }
 
-func (s *FlagService) StreamFlags(req *flag.ListFlagsRequest, srv flag.FlagService_ListFlagsServer) error {
+func (s *FlagService) ListFlags(req *flag.ListFlagsRequest, srv flag.FlagService_ListFlagsServer) error {
 	ctx := srv.Context()
 	flags, err := s.source.GetFlags(ctx)
 	if err != nil {

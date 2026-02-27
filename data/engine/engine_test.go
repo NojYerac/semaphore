@@ -170,7 +170,7 @@ var _ = Describe("Engine", func() {
 					err = nil
 					flag.Strategies = []data.Strategy{
 						{
-							Type:    "percentage",
+							Type:    "percentage_rollout",
 							Payload: []byte(`{"percentage": 100}`),
 						},
 					}

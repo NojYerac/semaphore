@@ -73,6 +73,7 @@ message GroupTargeting {
 message EvaluateRequest {
     string flag_id = 1;
     string user_id = 2;
+    repeated string group_ids = 3;
 }
 
 message EvaluateResponse {

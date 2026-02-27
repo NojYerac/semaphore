@@ -35,7 +35,15 @@ func (d *DataSource) Migrate(ctx context.Context) error {
 		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 	);
 
-	CREATE TYPE strategy_type AS ENUM ('percentage', 'user_id', 'custom');
+	DO $$
+	BEGIN
+		CREATE TYPE strategy_type AS ENUM ('percentage_rollout', 'user_targeting', 'group_targeting');
+	EXCEPTION
+		WHEN duplicate_object THEN
+			-- type already exists, ignore
+			NULL;
+	END;
+	$$;
 
 	CREATE TABLE IF NOT EXISTS strategies (
 		id SERIAL PRIMARY KEY,
@@ -55,22 +63,33 @@ func (d *DataSource) Migrate(ctx context.Context) error {
 		details TEXT
 	);
 
-	CREATE FUNCTION update_timestamp() RETURNS trigger AS $$
+	CREATE OR REPLACE FUNCTION update_timestamp() RETURNS trigger AS $$
 	BEGIN
 		NEW.updated_at = NOW();
 		RETURN NEW;
 	END;
 	$$ LANGUAGE plpgsql;
 
-	CREATE TRIGGER update_feature_flags_updated_at
-	BEFORE UPDATE ON feature_flags
-	FOR EACH ROW
-	EXECUTE FUNCTION update_timestamp();
+	DO $$
+	BEGIN
+		IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_feature_flags_updated_at') THEN
+			CREATE TRIGGER update_feature_flags_updated_at
+			BEFORE UPDATE ON feature_flags
+			FOR EACH ROW
+			EXECUTE FUNCTION update_timestamp();
+		END IF;
+	END;
+	$$;
 `)
 	return err
 }
 
 func getFlagBaseQuery() sq.SelectBuilder {
+	strategies := `COALESCE(
+		JSON_AGG(JSON_BUILD_OBJECT('type', s.type, 'payload', s.payload))
+		FILTER (WHERE s.id IS NOT NULL),
+		'[]'
+	) AS strategies"`
 	return sq.Select(
 		"f.id",
 		"f.name",
@@ -78,7 +97,7 @@ func getFlagBaseQuery() sq.SelectBuilder {
 		"f.enabled",
 		"f.created_at",
 		"f.updated_at",
-		"JSON_AGG(JSON_BUILD_OBJECT('type', s.type, 'payload', s.payload)) AS strategies",
+		strategies,
 	).
 		From("feature_flags f").
 		LeftJoin("strategies s ON f.id = s.flag_id").
@@ -128,25 +147,29 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 			_ = tx.Rollback(ctx)
 		}
 	}()
-	_, err = d.db.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, sql, args...)
 	if err != nil {
 		return "", err
+	}
+	if len(flag.Strategies) == 0 {
+		err = tx.Commit(ctx)
+		return id, err
 	}
 	stratQuery := sq.Insert("strategies").
 		Columns("flag_id", "type", "payload")
 	for _, strategy := range flag.Strategies {
-		stratQuery = stratQuery.Values(flag.ID, strategy.Type, strategy.Payload)
+		stratQuery = stratQuery.Values(id, strategy.Type, strategy.Payload)
 	}
 	sql, args, err = stratQuery.ToSql()
 	if err != nil {
 		return id, err
 	}
-	_, err = d.db.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, sql, args...)
 	if err != nil {
 		return "", err
 	}
 	err = tx.Commit(ctx)
-	return id, nil
+	return id, err
 }
 
 func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) error {

@@ -64,7 +64,7 @@ func (e *Engine) EvaluateFlag(ctx context.Context, flagID, userID string, groupI
 			if evaluateGroupTargetingStrategy(pl, groupIDs) {
 				return true, nil
 			}
-		case "percentage":
+		case "percentage_rollout":
 			enabled, err := evaluatePercentageStrategy(flagID, userID, pl)
 			if err != nil {
 				return false, err
