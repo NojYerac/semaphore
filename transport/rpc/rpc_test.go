@@ -15,6 +15,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+const percentageRolloutStrategyType = "percentage_rollout"
+
 type listFlagsServerStub struct {
 	ctx       context.Context
 	responses []*flag.ListFlagsResponse
@@ -194,7 +196,7 @@ var _ = Describe("RPC Service", func() {
 					Enabled: true,
 					Strategies: []*flag.Strategy{
 						{
-							Type: "percentage_rollout",
+							Type: percentageRolloutStrategyType,
 							Payload: &flag.Strategy_PercentageRollout{
 								PercentageRollout: &flag.PercentageRollout{Percentage: 50},
 							},
@@ -210,7 +212,7 @@ var _ = Describe("RPC Service", func() {
 				return f.Name == "new-flag" &&
 					f.Enabled == true &&
 					len(f.Strategies) == 1 &&
-					f.Strategies[0].Type == "percentage_rollout"
+					f.Strategies[0].Type == percentageRolloutStrategyType
 			})).Return(newID, nil)
 
 			resp, err = service.CreateFlag(ctx, req)
@@ -264,7 +266,7 @@ var _ = Describe("RPC Service", func() {
 					Enabled: true,
 					Strategies: []*flag.Strategy{
 						{
-							Type: "percentage_rollout",
+							Type: percentageRolloutStrategyType,
 							Payload: &flag.Strategy_PercentageRollout{
 								PercentageRollout: &flag.PercentageRollout{Percentage: 75},
 							},
@@ -280,7 +282,7 @@ var _ = Describe("RPC Service", func() {
 					f.Name == "updated-flag" &&
 					f.Enabled &&
 					len(f.Strategies) == 1 &&
-					f.Strategies[0].Type == "percentage_rollout"
+					f.Strategies[0].Type == percentageRolloutStrategyType
 			})).Return(nil)
 
 			resp, err = service.UpdateFlag(ctx, req)
@@ -296,7 +298,7 @@ var _ = Describe("RPC Service", func() {
 						Id:   flagID,
 						Name: "updated-flag",
 						Strategies: []*flag.Strategy{{
-							Type: "percentage_rollout",
+							Type: percentageRolloutStrategyType,
 						}},
 					},
 				}
@@ -312,7 +314,9 @@ var _ = Describe("RPC Service", func() {
 
 		Context("when source update fails", func() {
 			BeforeEach(func() {
-				mockEngine.On("UpdateFlag", mock.Anything, mock.AnythingOfType("*data.FeatureFlag")).Return(fmt.Errorf("update failed"))
+				mockEngine.On(
+					"UpdateFlag", mock.Anything, mock.AnythingOfType("*data.FeatureFlag"),
+				).Return(fmt.Errorf("update failed"))
 			})
 
 			It("returns the source error", func() {
