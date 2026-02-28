@@ -12,7 +12,34 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/metadata"
 )
+
+type listFlagsServerStub struct {
+	ctx       context.Context
+	responses []*flag.ListFlagsResponse
+	sendErr   error
+}
+
+func (s *listFlagsServerStub) Send(resp *flag.ListFlagsResponse) error {
+	if s.sendErr != nil {
+		return s.sendErr
+	}
+	s.responses = append(s.responses, resp)
+	return nil
+}
+
+func (s *listFlagsServerStub) SetHeader(metadata.MD) error { return nil }
+
+func (s *listFlagsServerStub) SendHeader(metadata.MD) error { return nil }
+
+func (s *listFlagsServerStub) SetTrailer(metadata.MD) {}
+
+func (s *listFlagsServerStub) Context() context.Context { return s.ctx }
+
+func (s *listFlagsServerStub) SendMsg(interface{}) error { return nil }
+
+func (s *listFlagsServerStub) RecvMsg(interface{}) error { return nil }
 
 var _ = Describe("RPC Service", func() {
 	var (
@@ -90,6 +117,67 @@ var _ = Describe("RPC Service", func() {
 		})
 	})
 
+	Describe("ListFlags", func() {
+		var (
+			req      *flag.ListFlagsRequest
+			srv      *listFlagsServerStub
+			err      error
+			firstID  string
+			secondID string
+		)
+
+		BeforeEach(func() {
+			req = &flag.ListFlagsRequest{}
+			srv = &listFlagsServerStub{ctx: ctx}
+			firstID = uuid.New().String()
+			secondID = uuid.New().String()
+		})
+
+		Context("when flags are returned", func() {
+			BeforeEach(func() {
+				mockEngine.On("GetFlags", mock.Anything).Return([]*data.FeatureFlag{
+					{ID: firstID, Name: "flag-1", Enabled: true},
+					{ID: secondID, Name: "flag-2", Enabled: false},
+				}, nil)
+			})
+
+			It("streams all flags", func() {
+				err = service.ListFlags(req, srv)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(srv.responses).To(HaveLen(2))
+				Expect(srv.responses[0].GetFlag().GetId()).To(Equal(firstID))
+				Expect(srv.responses[1].GetFlag().GetId()).To(Equal(secondID))
+			})
+		})
+
+		Context("when source returns an error", func() {
+			BeforeEach(func() {
+				mockEngine.On("GetFlags", mock.Anything).Return(nil, fmt.Errorf("list failed"))
+			})
+
+			It("returns the source error", func() {
+				err = service.ListFlags(req, srv)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("list failed"))
+			})
+		})
+
+		Context("when sending a response fails", func() {
+			BeforeEach(func() {
+				srv.sendErr = fmt.Errorf("stream send failed")
+				mockEngine.On("GetFlags", mock.Anything).Return([]*data.FeatureFlag{
+					{ID: firstID, Name: "flag-1", Enabled: true},
+				}, nil)
+			})
+
+			It("returns the stream error", func() {
+				err = service.ListFlags(req, srv)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("stream send failed"))
+			})
+		})
+	})
+
 	Describe("CreateFlag", func() {
 		var (
 			req   *flag.CreateFlagRequest
@@ -156,6 +244,119 @@ var _ = Describe("RPC Service", func() {
 			resp, err = service.Evaluate(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Enabled).To(BeTrue())
+		})
+	})
+
+	Describe("UpdateFlag", func() {
+		var (
+			req    *flag.UpdateFlagRequest
+			resp   *flag.UpdateFlagResponse
+			err    error
+			flagID string
+		)
+
+		BeforeEach(func() {
+			flagID = uuid.New().String()
+			req = &flag.UpdateFlagRequest{
+				Flag: &flag.Flag{
+					Id:      flagID,
+					Name:    "updated-flag",
+					Enabled: true,
+					Strategies: []*flag.Strategy{
+						{
+							Type: "percentage_rollout",
+							Payload: &flag.Strategy_PercentageRollout{
+								PercentageRollout: &flag.PercentageRollout{Percentage: 75},
+							},
+						},
+					},
+				},
+			}
+		})
+
+		It("updates the flag", func() {
+			mockEngine.On("UpdateFlag", mock.Anything, mock.MatchedBy(func(f *data.FeatureFlag) bool {
+				return f.ID == flagID &&
+					f.Name == "updated-flag" &&
+					f.Enabled &&
+					len(f.Strategies) == 1 &&
+					f.Strategies[0].Type == "percentage_rollout"
+			})).Return(nil)
+
+			resp, err = service.UpdateFlag(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.Success).To(BeTrue())
+		})
+
+		Context("when the request flag is invalid", func() {
+			BeforeEach(func() {
+				req = &flag.UpdateFlagRequest{
+					Flag: &flag.Flag{
+						Id:   flagID,
+						Name: "updated-flag",
+						Strategies: []*flag.Strategy{{
+							Type: "percentage_rollout",
+						}},
+					},
+				}
+			})
+
+			It("returns conversion error", func() {
+				resp, err = service.UpdateFlag(ctx, req)
+				Expect(err).To(HaveOccurred())
+				Expect(resp).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("unknown strategy payload type"))
+			})
+		})
+
+		Context("when source update fails", func() {
+			BeforeEach(func() {
+				mockEngine.On("UpdateFlag", mock.Anything, mock.AnythingOfType("*data.FeatureFlag")).Return(fmt.Errorf("update failed"))
+			})
+
+			It("returns the source error", func() {
+				resp, err = service.UpdateFlag(ctx, req)
+				Expect(err).To(HaveOccurred())
+				Expect(resp).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("update failed"))
+			})
+		})
+	})
+
+	Describe("DeleteFlag", func() {
+		var (
+			req    *flag.DeleteFlagRequest
+			resp   *flag.DeleteFlagResponse
+			err    error
+			flagID string
+		)
+
+		BeforeEach(func() {
+			flagID = uuid.New().String()
+			req = &flag.DeleteFlagRequest{Id: flagID}
+		})
+
+		It("deletes the flag", func() {
+			mockEngine.On("DeleteFlag", mock.Anything, flagID).Return(nil)
+
+			resp, err = service.DeleteFlag(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.Success).To(BeTrue())
+		})
+
+		Context("when source delete fails", func() {
+			BeforeEach(func() {
+				mockEngine.On("DeleteFlag", mock.Anything, flagID).Return(fmt.Errorf("delete failed"))
+			})
+
+			It("returns the source error", func() {
+				resp, err = service.DeleteFlag(ctx, req)
+				Expect(err).To(HaveOccurred())
+				Expect(resp).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("delete failed"))
+			})
 		})
 	})
 })
