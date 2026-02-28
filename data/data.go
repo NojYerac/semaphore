@@ -30,8 +30,9 @@ func NewDataEngine(source Source, engine Engine) DataEngine {
 }
 
 type Engine interface {
-	EvaluateFlag(ctx context.Context, flagName string, userID string, groupIDs []string) (bool, error)
+	EvaluateFlag(ctx context.Context, flagID, userID string, groupIDs []string) (bool, error)
 }
+
 type Source interface {
 	GetFlags(ctx context.Context) ([]*FeatureFlag, error)
 	GetFlagByID(ctx context.Context, id string) (*FeatureFlag, error)
@@ -209,6 +210,30 @@ func payloadToProto(strategyType string, payload json.RawMessage) interface{} {
 	default:
 		return nil
 	}
+}
+
+func FeatureFlagFromProto(pb *flag.Flag) (*FeatureFlag, error) {
+	if pb == nil {
+		return nil, fmt.Errorf("nil protobuf flag")
+	}
+	f := &FeatureFlag{
+		ID:          pb.Id,
+		Name:        pb.Name,
+		Description: pb.Description,
+		Enabled:     pb.Enabled,
+		Strategies:  make(Strategies, len(pb.Strategies)),
+	}
+	for i, s := range pb.Strategies {
+		f.Strategies[i] = Strategy{
+			Type: s.Type,
+		}
+		payload, err := json.Marshal(s.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal strategy payload: %w", err)
+		}
+		f.Strategies[i].Payload = payload
+	}
+	return f, nil
 }
 
 // AuditLog represents a log entry for flag operations.

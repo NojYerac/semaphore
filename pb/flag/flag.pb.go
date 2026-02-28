@@ -67,7 +67,7 @@ func (x *GetFlagRequest) GetId() string {
 
 type GetFlagResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Flags         *Flag                  `protobuf:"bytes,1,opt,name=flags,proto3" json:"flags,omitempty"`
+	Flag          *Flag                  `protobuf:"bytes,1,opt,name=flag,proto3" json:"flag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -102,9 +102,9 @@ func (*GetFlagResponse) Descriptor() ([]byte, []int) {
 	return file_flag_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetFlagResponse) GetFlags() *Flag {
+func (x *GetFlagResponse) GetFlag() *Flag {
 	if x != nil {
-		return x.Flags
+		return x.Flag
 	}
 	return nil
 }
@@ -878,10 +878,10 @@ const file_flag_proto_rawDesc = "" +
 	"\n" +
 	"flag.proto\x12\x04flag\" \n" +
 	"\x0eGetFlagRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"3\n" +
-	"\x0fGetFlagResponse\x12 \n" +
-	"\x05flags\x18\x01 \x01(\v2\n" +
-	".flag.FlagR\x05flags\"\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"1\n" +
+	"\x0fGetFlagResponse\x12\x1e\n" +
+	"\x04flag\x18\x01 \x01(\v2\n" +
+	".flag.FlagR\x04flag\"\x12\n" +
 	"\x10ListFlagsRequest\"3\n" +
 	"\x11ListFlagsResponse\x12\x1e\n" +
 	"\x04flag\x18\x01 \x01(\v2\n" +
@@ -972,7 +972,7 @@ var file_flag_proto_goTypes = []any{
 	(*EvaluateResponse)(nil),   // 16: flag.EvaluateResponse
 }
 var file_flag_proto_depIdxs = []int32{
-	10, // 0: flag.GetFlagResponse.flags:type_name -> flag.Flag
+	10, // 0: flag.GetFlagResponse.flag:type_name -> flag.Flag
 	10, // 1: flag.ListFlagsResponse.flag:type_name -> flag.Flag
 	10, // 2: flag.CreateFlagRequest.flag:type_name -> flag.Flag
 	10, // 3: flag.UpdateFlagRequest.flag:type_name -> flag.Flag

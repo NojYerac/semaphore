@@ -56,7 +56,25 @@ func main() {
 		}
 		logger.Infof("Received flag: %s", resp.Flag.Name)
 	}
+	flagClient.CreateFlag(ctx, &flag.CreateFlagRequest{
+		Flag: &flag.Flag{
+			Name:        "new-grpc-flag",
+			Enabled:     true,
+			Description: "A new flag (gRPC)",
+			Strategies: []*flag.Strategy{
+				{
+					Type: "percentage_rollout",
+					Payload: &flag.Strategy_PercentageRollout{
+						PercentageRollout: &flag.PercentageRollout{
+							Percentage: 50,
+						},
+					},
+				},
+			},
+		},
+	})
 
+	// Test HTTP endpoints
 	if statusCode, body, err := do("GET", baseURL, http.NoBody); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
