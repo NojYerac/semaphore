@@ -7,7 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.4
-	github.com/nojyerac/go-lib v0.0.0-20260227010929-43847407b991
+	github.com/nojyerac/go-lib v0.0.0-20260228093242-d4a373db8e13
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/sirupsen/logrus v1.9.4
