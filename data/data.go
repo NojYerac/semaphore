@@ -107,7 +107,7 @@ func (f *Strategies) Scan(value interface{}) error {
 // Payload is a raw JSON blob containing the strategy specific data.
 // The engine unmarshals it based on the Type value.
 type Strategy struct {
-	Type    string          `json:"type" db:"type" validate:"required,oneof=percentage_rollout user_targeting group_targeting"`
+	Type    string          `json:"type" db:"type" validate:"required,oneof=percentage_rollout user_targeting group_targeting"` //nolint:lll // param tag
 	Payload json.RawMessage `json:"payload" db:"payload"`
 }
 
@@ -215,7 +215,7 @@ func payloadToProto(strategyType string, payload json.RawMessage) interface{} {
 type AuditLog struct {
 	ID        string          `json:"id" db:"id" validate:"required,uuid4"`
 	FlagID    string          `json:"flagID" db:"flag_id" validate:"required,uuid4"`
-	Action    string          `json:"action" db:"action" validate:"required,oneof=create update delete"` // "create", "update", "delete"
+	Action    string          `json:"action" db:"action" validate:"required,oneof=create update delete"` //nolint:lll // param tag
 	Timestamp time.Time       `json:"timestamp" db:"timestamp" validate:"required"`
 	User      string          `json:"userID" db:"user_id" validate:"required,uuid4"`
 	Details   json.RawMessage `json:"details" db:"details"` // JSON string with operation details

@@ -1,3 +1,5 @@
+//nolint
+
 package main
 
 import (
@@ -14,6 +16,10 @@ import (
 	"github.com/nojyerac/semaphore/pb/flag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+)
+
+const (
+	baseURL = "http://localhost:8080/api/flags"
 )
 
 func main() {
@@ -51,29 +57,24 @@ func main() {
 		logger.Infof("Received flag: %s", resp.Flag.Name)
 	}
 
-	if statusCode, body, err := do("GET", "http://localhost:8080/api/flags", http.NoBody); err != nil {
+	if statusCode, body, err := do("GET", baseURL, http.NoBody); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
 	createFlagBody := `{
 		"name": "new-feature",
 		"description": "A new feature flag",
 		"enabled": true,
-		"strategies": [
-			{
-				"type": "percentage_rollout",
-				"payload": {
-					"percentage": 50
-				}
-			}
-		]
-	}`
+		"strategies": [{
+			"type": "percentage_rollout",
+			"payload": {"percentage": 50}
+		}]}`
 	var createdFlagID string
-	if statusCode, body, err := do("POST", "http://localhost:8080/api/flags", strings.NewReader(createFlagBody)); err != nil {
+	if statusCode, body, err := do("POST", baseURL, strings.NewReader(createFlagBody)); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 		createdFlagBody := struct {
 			ID string `json:"id"`
 		}{}
@@ -88,19 +89,20 @@ func main() {
 		logger.Error("created flag ID is empty, skipping GET and DELETE tests")
 		return
 	}
-	if statusCode, body, err := do("GET", "http://localhost:8080/api/flags/"+createdFlagID, http.NoBody); err != nil {
+	if statusCode, body, err := do("GET", baseURL+"/"+createdFlagID, http.NoBody); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
-	evaluateFlagBody := fmt.Sprintf(`{
-		"userId": %q,
-		"groupIds": [%q, %q]
-	}`, uuid.New().String(), uuid.New().String(), uuid.New().String())
-	if statusCode, body, err := do("POST", "http://localhost:8080/api/flags/"+createdFlagID+"/evaluate", strings.NewReader(evaluateFlagBody)); err != nil {
+	evaluateFlagBody := fmt.Sprintf(
+		`{"userId": %q,"groupIds": [%q, %q]}`,
+		uuid.New().String(), uuid.New().String(), uuid.New().String(),
+	)
+	evaluateFlagBodyReader := strings.NewReader(evaluateFlagBody)
+	if statusCode, body, err := do("POST", baseURL+"/"+createdFlagID+"/evaluate", evaluateFlagBodyReader); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
 	updateFlagBody := `{
 		"name": "new-feature-updated",
@@ -108,27 +110,27 @@ func main() {
 		"enabled": false,
 		"strategies": []
 	}`
-	if statusCode, body, err := do("PUT", "http://localhost:8080/api/flags/"+createdFlagID, strings.NewReader(updateFlagBody)); err != nil {
+	if statusCode, body, err := do("PUT", baseURL+"/"+createdFlagID, strings.NewReader(updateFlagBody)); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
-	if statusCode, body, err := do("DELETE", "http://localhost:8080/api/flags/"+createdFlagID, http.NoBody); err != nil {
+	if statusCode, body, err := do("DELETE", baseURL+"/"+createdFlagID, http.NoBody); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
-		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", string(body))
+		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
 }
 
-func do(method, url string, body io.Reader) (int, string, error) {
+func do(method, url string, body io.Reader) (code int, bodyStr string, err error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return 0, "", err
+		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return 0, "", err
+		return
 	}
 	defer res.Body.Close()
 	bodyBytes, err := io.ReadAll(res.Body)
