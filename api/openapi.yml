@@ -122,13 +122,13 @@ paths:
             schema:
               type: object
               required:
-                - user_id
-                - group_ids
+                - userID
+                - groupIDs
               properties:
-                user_id:
+                userID:
                   type: string
                   description: Unique identifier for the user being evaluated
-                group_ids:
+                groupIDs:
                   type: array
                   items:
                     type: string
@@ -191,13 +191,13 @@ components:
       type: object
       required:
       - type
-      - user_ids
+      - userIDs
       properties:
         type:
           type: string
           enum: [user_targeting]
           description: Type of targeting strategy
-        user_ids:
+        userIDs:
           type: array
           items:
             type: string
@@ -206,13 +206,13 @@ components:
       type: object
       required:
         - type
-        - group_ids
+        - groupIDs
       properties:
         type:
           type: string
           enum: [group_targeting]
           description: Type of targeting strategy
-        group_ids:
+        groupIDs:
           type: array
           items:
             type: string

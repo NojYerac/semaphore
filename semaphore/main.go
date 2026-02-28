@@ -17,7 +17,9 @@ import (
 	"github.com/nojyerac/go-lib/version"
 
 	"github.com/nojyerac/semaphore/config"
+	"github.com/nojyerac/semaphore/data"
 	"github.com/nojyerac/semaphore/data/db"
+	"github.com/nojyerac/semaphore/data/engine"
 	"github.com/nojyerac/semaphore/transport/http"
 	"github.com/nojyerac/semaphore/transport/rpc"
 )
@@ -68,6 +70,8 @@ func main() {
 		logger.WithError(err).Panic("failed to create data source")
 	}
 
+	dataEngine := data.NewDataEngine(source, engine.NewEngine(source))
+
 	// Initialize transports
 	httpServer := libhttp.NewServer(
 		config.HTTPConfig,
@@ -75,10 +79,10 @@ func main() {
 		libhttp.WithHealthChecker(checker),
 		libhttp.WithMetricsHandler(metricHandler),
 	)
-	http.RegisterRoutes(source, httpServer)
+	http.RegisterRoutes(dataEngine, httpServer)
 
 	grpc.SetLogger(logger)
-	grpcServer := grpc.NewServer(rpc.RegisterServices(source))
+	grpcServer := grpc.NewServer(rpc.RegisterServices(dataEngine))
 
 	trans, err := transport.NewServer(
 		config.TransConfig,
