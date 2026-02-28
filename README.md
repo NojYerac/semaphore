@@ -159,6 +159,17 @@ go run ./semaphore/main.go
 go run ./testclient/main.go
 ```
 
+`testclient` now signs JWTs for `flag_reader` and `flag_admin` roles.
+Set these env vars to match your running service auth config:
+
+```bash
+export TESTCLIENT_AUTH_ISSUER="semaphore"
+export TESTCLIENT_AUTH_AUDIENCE="semaphore-api"
+export TESTCLIENT_AUTH_HMAC_SECRET="change-me"
+export TESTCLIENT_AUTH_SUBJECT="testclient"
+go run ./testclient/main.go
+```
+
 ## Configuration
 
 Configuration is loaded and validated at startup through shared `go-lib` configuration packages.

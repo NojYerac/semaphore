@@ -8,18 +8,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/nojyerac/go-lib/log"
 	libgrpc "github.com/nojyerac/go-lib/transport/grpc"
 	"github.com/nojyerac/semaphore/pb/flag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
-	baseURL = "http://localhost:8080/api/flags"
+	baseURL    = "http://localhost:8080/api/flags"
+	roleReader = "flag_reader"
+	roleAdmin  = "flag_admin"
 )
 
 func main() { // nolint
@@ -41,9 +47,19 @@ func main() { // nolint
 	}
 	defer cc.Close()
 	flagClient := flag.NewFlagServiceClient(cc)
+	readToken, err := issueToken(roleReader)
+	if err != nil {
+		panic(err)
+	}
+	adminToken, err := issueToken(roleAdmin)
+	if err != nil {
+		panic(err)
+	}
+	readCtx := withBearer(ctx, readToken)
+	adminCtx := withBearer(ctx, adminToken)
 
 	var createdGrpcFlagID string
-	if res, err := flagClient.CreateFlag(ctx, &flag.CreateFlagRequest{
+	if res, err := flagClient.CreateFlag(adminCtx, &flag.CreateFlagRequest{
 		Flag: &flag.Flag{
 			Name:        "new-grpc-flag",
 			Enabled:     true,
@@ -63,7 +79,7 @@ func main() { // nolint
 		logger.Infof("Created flag with ID: %s", res.GetId())
 		createdGrpcFlagID = res.GetId()
 	}
-	stream, err := flagClient.ListFlags(ctx, &flag.ListFlagsRequest{})
+	stream, err := flagClient.ListFlags(readCtx, &flag.ListFlagsRequest{})
 	if err != nil {
 		logger.WithError(err).Error("failed to list flags via gRPC")
 	}
@@ -79,12 +95,12 @@ func main() { // nolint
 		logger.Infof("Received flag: %+v", resp.Flag)
 	}
 
-	if getRes, err := flagClient.GetFlag(ctx, &flag.GetFlagRequest{Id: createdGrpcFlagID}); err != nil {
+	if getRes, err := flagClient.GetFlag(readCtx, &flag.GetFlagRequest{Id: createdGrpcFlagID}); err != nil {
 		logger.WithError(err).Error("failed to get flag via gRPC")
 	} else {
 		logger.Infof("Got flag via gRPC: %s", getRes.GetFlag().GetName())
 	}
-	if _, err := flagClient.UpdateFlag(ctx, &flag.UpdateFlagRequest{
+	if _, err := flagClient.UpdateFlag(adminCtx, &flag.UpdateFlagRequest{
 		Flag: &flag.Flag{
 			Id:          createdGrpcFlagID,
 			Name:        "updated-grpc-flag",
@@ -97,7 +113,7 @@ func main() { // nolint
 	} else {
 		logger.Info("Updated flag via gRPC")
 	}
-	if evalRes, err := flagClient.Evaluate(ctx, &flag.EvaluateRequest{
+	if evalRes, err := flagClient.Evaluate(readCtx, &flag.EvaluateRequest{
 		FlagId:   createdGrpcFlagID,
 		UserId:   uuid.New().String(),
 		GroupIds: []string{uuid.New().String(), uuid.New().String()},
@@ -106,14 +122,14 @@ func main() { // nolint
 	} else {
 		logger.Infof("Evaluated flag via gRPC, enabled: %v", evalRes.GetEnabled())
 	}
-	if _, err := flagClient.DeleteFlag(ctx, &flag.DeleteFlagRequest{Id: createdGrpcFlagID}); err != nil {
+	if _, err := flagClient.DeleteFlag(adminCtx, &flag.DeleteFlagRequest{Id: createdGrpcFlagID}); err != nil {
 		logger.WithError(err).Error("failed to delete flag via gRPC")
 	} else {
 		logger.Info("Deleted flag via gRPC")
 	}
 
 	// Test HTTP endpoints
-	if statusCode, body, err := do("GET", baseURL, http.NoBody); err != nil {
+	if statusCode, body, err := do("GET", baseURL, http.NoBody, readToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
@@ -127,7 +143,7 @@ func main() { // nolint
 			"payload": {"percentage": 50}
 		}]}`
 	var createdFlagID string
-	if statusCode, body, err := do("POST", baseURL, strings.NewReader(createFlagBody)); err != nil {
+	if statusCode, body, err := do("POST", baseURL, strings.NewReader(createFlagBody), adminToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
@@ -145,7 +161,7 @@ func main() { // nolint
 		logger.Error("created flag ID is empty, skipping GET and DELETE tests")
 		return
 	}
-	if statusCode, body, err := do("GET", baseURL+"/"+createdFlagID, http.NoBody); err != nil {
+	if statusCode, body, err := do("GET", baseURL+"/"+createdFlagID, http.NoBody, readToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
@@ -155,7 +171,9 @@ func main() { // nolint
 		uuid.New().String(), uuid.New().String(), uuid.New().String(),
 	)
 	evaluateFlagBodyReader := strings.NewReader(evaluateFlagBody)
-	if statusCode, body, err := do("POST", baseURL+"/"+createdFlagID+"/evaluate", evaluateFlagBodyReader); err != nil {
+	if statusCode, body, err := do(
+		"POST", baseURL+"/"+createdFlagID+"/evaluate", evaluateFlagBodyReader, readToken,
+	); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
@@ -166,24 +184,25 @@ func main() { // nolint
 		"enabled": false,
 		"strategies": []
 	}`
-	if statusCode, body, err := do("PUT", baseURL+"/"+createdFlagID, strings.NewReader(updateFlagBody)); err != nil {
+	if statusCode, body, err := do("PUT", baseURL+"/"+createdFlagID, strings.NewReader(updateFlagBody), adminToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
-	if statusCode, body, err := do("DELETE", baseURL+"/"+createdFlagID, http.NoBody); err != nil {
+	if statusCode, body, err := do("DELETE", baseURL+"/"+createdFlagID, http.NoBody, adminToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
 	}
 }
 
-func do(method, url string, body io.Reader) (code int, bodyStr string, err error) {
+func do(method, url string, body io.Reader, bearerToken string) (code int, bodyStr string, err error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return
@@ -194,4 +213,31 @@ func do(method, url string, body io.Reader) (code int, bodyStr string, err error
 		return res.StatusCode, "", err
 	}
 	return res.StatusCode, string(bodyBytes), nil
+}
+
+func withBearer(ctx context.Context, token string) context.Context {
+	return metadata.NewOutgoingContext(ctx, metadata.Pairs("authorization", "Bearer "+token))
+}
+
+func issueToken(roles ...string) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"sub":   getenv("TESTCLIENT_AUTH_SUBJECT", "testclient"),
+		"iss":   getenv("TESTCLIENT_AUTH_ISSUER", "semaphore"),
+		"aud":   getenv("TESTCLIENT_AUTH_AUDIENCE", "semaphore-api"),
+		"roles": roles,
+		"iat":   now.Unix(),
+		"exp":   now.Add(1 * time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(getenv("TESTCLIENT_AUTH_HMAC_SECRET", "change-me")))
+}
+
+func getenv(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
 }
