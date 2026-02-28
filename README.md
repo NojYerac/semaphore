@@ -1,7 +1,5 @@
 # Semaphore
 
-Lightweight feature-flag service written in Go.
-
 Semaphore provides CRUD and evaluation APIs over HTTP and gRPC, supports percentage/user/group targeting strategies, and stores flag state in PostgreSQL.
 
 ## Current Status
@@ -10,6 +8,7 @@ Implemented:
 
 - HTTP API for create/read/update/delete/evaluate flag operations
 - gRPC API for create/read/update/delete/evaluate flag operations
+- AuthN/AuthZ enforcement via go-lib middleware/interceptors with shared policy maps
 - Evaluation engine with:
   - `percentage_rollout`
   - `user_targeting`
@@ -19,7 +18,6 @@ Implemented:
 
 Planned next:
 
-- Authentication and role-based authorization
 - End-to-end audit logging exposure
 - GitHub Actions CI/CD
 - First-class Go SDK package
@@ -67,6 +65,45 @@ Service: `flag.FlagService`
 - `Evaluate`
 
 Proto contract: `api/flag.proto`
+
+## Authentication and Authorization
+
+Authentication and role checks are enforced in service startup using shared `go-lib` primitives:
+
+- HTTP: `transport/http.WithAuthMiddleware(validator, policies)`
+- gRPC: `transport/grpc.AuthServerOptions(validator, policies)`
+
+Central policy definitions live in `security/policies.go`.
+
+### Required roles
+
+- Read/evaluate operations require `flag_reader` or `flag_admin`
+- Mutating operations require `flag_admin`
+
+HTTP role mapping:
+
+- `GET /api/flags` -> `flag_reader | flag_admin`
+- `GET /api/flags/{id}` -> `flag_reader | flag_admin`
+- `POST /api/flags/{id}/evaluate` -> `flag_reader | flag_admin`
+- `POST /api/flags` -> `flag_admin`
+- `PUT /api/flags/{id}` -> `flag_admin`
+- `DELETE /api/flags/{id}` -> `flag_admin`
+
+gRPC role mapping:
+
+- `/flag.FlagService/ListFlags` -> `flag_reader | flag_admin`
+- `/flag.FlagService/GetFlag` -> `flag_reader | flag_admin`
+- `/flag.FlagService/Evaluate` -> `flag_reader | flag_admin`
+- `/flag.FlagService/CreateFlag` -> `flag_admin`
+- `/flag.FlagService/UpdateFlag` -> `flag_admin`
+- `/flag.FlagService/DeleteFlag` -> `flag_admin`
+
+Error mapping:
+
+- HTTP auth failures: `401 Unauthorized`
+- HTTP authorization failures: `403 Forbidden`
+- gRPC auth failures: `Unauthenticated`
+- gRPC authorization failures: `PermissionDenied`
 
 ## Data Model (High Level)
 
@@ -120,6 +157,17 @@ go run ./semaphore/main.go
 go run ./testclient/main.go
 ```
 
+`testclient` now signs JWTs for `flag_reader` and `flag_admin` roles.
+Set these env vars to match your running service auth config:
+
+```bash
+export TESTCLIENT_AUTH_ISSUER="semaphore"
+export TESTCLIENT_AUTH_AUDIENCE="semaphore-api"
+export TESTCLIENT_AUTH_HMAC_SECRET="change-me"
+export TESTCLIENT_AUTH_SUBJECT="testclient"
+go run ./testclient/main.go
+```
+
 ## Configuration
 
 Configuration is loaded and validated at startup through shared `go-lib` configuration packages.
@@ -127,6 +175,7 @@ Configuration is loaded and validated at startup through shared `go-lib` configu
 Major configuration areas:
 
 - Logging
+- Auth (`auth_issuer`, `auth_audience`, `auth_hmac_secret`, `auth_clock_skew`)
 - Database
 - HTTP server
 - Transport wiring
@@ -160,3 +209,126 @@ Current roadmap items are tracked in [plans/](./plans):
 3. [CI/CD with GitHub Actions](./plans/03-CI-CD-GITHUB-ACTIONS.md)
 4. [First-Class Go Client SDK](./plans/04-GO-CLIENT-SDK.md)
 5. [Operational Hardening](./plans/05-OPERATIONS-HARDENING.md)
+
+Semaphore is a high-throughput, low-latency control plane designed for decoupling feature release from code deployment. It provides a centralized, consistent source of truth for feature flag evaluation across distributed microservices.
+
+Unlike traditional flag systems that couple logic to the application runtime or rely on eventually consistent key-value stores, Semaphore implements a strict **Hexagonal Architecture** (Ports & Adapters). This ensures that the core domain logic—flag evaluation rules, rollout strategies, and audit trails—remains completely isolated from transport mechanisms (gRPC/HTTP) and persistence layers (Postgres).
+
+## Architecture
+
+Semaphore follows a clean architectural style to maximize testability and flexibility. The system is composed of concentric layers, where dependencies point inward.
+
+```mermaid
+graph TD
+    subgraph "Adapters (Infrastructure & Interface)"
+        GRPC[gRPC Transport]
+        HTTP[REST / HTTP Transport]
+        RepoImpl[Postgres Repository]
+        PolicyImpl[OPA / Policy Engine]
+    end
+
+    subgraph "Application Core (Hexagon)"
+        subgraph "Ports (Interfaces)"
+            ServicePort[Service Interface]
+            RepoPort[Repository Interface]
+            PolicyPort[Policy Interface]
+        end
+        
+        subgraph "Domain Logic"
+            Service[Application Service]
+            Engine[Evaluation Engine]
+            Model[Domain Models]
+        end
+    end
+
+    %% Dependencies point INWARD
+    GRPC --> ServicePort
+    HTTP --> ServicePort
+    
+    RepoImpl --> RepoPort
+    PolicyImpl --> PolicyPort
+
+    %% Core Implementation
+    Service -.->|Implements| ServicePort
+    Service --> RepoPort
+    Service --> PolicyPort
+    Service --> Engine
+    Engine --> Model
+```
+
+### Component Breakdown
+1. **Transport Layer**: Exposes both high-performance gRPC endpoints for service-to-service communication and RESTful HTTP endpoints for dashboard/admin integration.
+2. **Middleware**: Enforces cross-cutting concerns such as logging, metrics, and policy-based authorization before requests reach the core.
+3. **Application Service**: Orchestrates the flow of data, managing transactions and coordinating between the domain and infrastructure.
+4. **Evaluation Engine**: The pure logic component that determines flag states based on context, rules, and percentage rollouts.
+5. **Infrastructure**: Pluggable implementations for persistence and external policy checks.
+
+## Design Principles
+
+### 1. Transactional Integrity over Eventual Consistency
+**Why Postgres?**
+Feature flags often control critical system behaviors (e.g., "Enable New Billing System"). In distributed environments, eventual consistency can lead to "flickering" experiences where a user sees a feature enabled on one request and disabled on the next. Semaphore uses PostgreSQL to guarantee ACID compliance for flag state mutations, ensuring that once a flag is toggled, the decision is authoritative and immediate.
+
+### 2. Dual-Protocol Strategy (gRPC + HTTP)
+**Why both?**
+- **gRPC (Internal)**: Utilized for high-frequency, low-latency checks from internal microservices. Protocol Buffers provide smaller payloads and stronger type safety compared to JSON.
+- **HTTP (Public/Admin)**: Provides a standard interface for web dashboards, CI/CD pipelines, and external tools that may not support gRPC natively.
+
+### 3. Decoupled Policy-Based Authorization
+**Why Policy AuthZ?**
+Security requirements for feature management are complex (e.g., "Only Tech Leads can enable flags in Production during a code freeze"). Hardcoding these rules into the application creates rigidity. Semaphore delegates authorization decisions to a policy engine (conceptually similar to OPA), allowing security policies to be versioned and deployed independently of the application code.
+
+## Quick Start
+
+The fastest way to spin up Semaphore is via Docker Compose. This will provision the PostgreSQL database and the Control Plane service.
+
+### Prerequisites
+- Docker Engine & Docker Compose
+- Go 1.22+ (for local development/building)
+
+### Deploying the Stack
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/semaphore.git
+   cd semaphore
+   ```
+
+2. **Start the services:**
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Verify functionality:**
+   - **HTTP Health Check:**
+     ```bash
+     curl http://localhost:8080/health
+     ```
+   - **gRPC Interface:**
+     Use a tool like `grpcurl` to inspect the service:
+     ```bash
+     grpcurl -plaintext localhost:50051 list
+     ```
+
+### Configuration
+Environment variables can be adjusted in `docker-compose.yml`. Key variables include:
+
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`: Database credentials.
+- `GRPC_PORT`: Port for gRPC traffic (default: 50051).
+- `HTTP_PORT`: Port for HTTP traffic (default: 8080).
+
+## Development
+
+To run the service locally without Docker (requires a running Postgres instance):
+
+```bash
+# Install dependencies
+go mod download
+
+# Run migrations (if applicable)
+make migrate-up
+
+# Start the service
+go run cmd/server/main.go
+```
+
