@@ -1,5 +1,9 @@
 # Task 01: Authentication and Authorization
 
+## Status
+
+Implemented on 2026-02-28.
+
 ## Problem
 
 The service exposes full flag mutation and evaluation endpoints over HTTP and gRPC with no identity or role checks.
@@ -7,6 +11,25 @@ The service exposes full flag mutation and evaluation endpoints over HTTP and gR
 ## Goal
 
 Require authenticated callers and enforce role-based access control for all API operations.
+
+## Implementation Summary
+
+- Service startup now initializes `auth.Configuration` and `auth.NewValidator(...)`.
+- HTTP authn/authz is enforced by `transport/http.WithAuthMiddleware(...)`.
+- gRPC authn/authz is enforced by `transport/grpc.AuthServerOptions(...)` (unary + stream).
+- Policy decisions are centralized in `security/policies.go` via `authz.PolicyMap`.
+- Read/evaluate endpoints require `flag_reader` or `flag_admin`.
+- Mutating endpoints require `flag_admin`.
+- Error behavior is consistent:
+  - HTTP: `401` for invalid/missing token, `403` for insufficient role
+  - gRPC: `Unauthenticated` for invalid/missing token, `PermissionDenied` for insufficient role
+
+## How to Extend
+
+1. Add operation mapping in `security/policies.go` only.
+2. Prefer `authz.RequireAny(...)` with least-privilege defaults.
+3. Keep transport handlers free of role logic.
+4. Add/adjust transport tests for missing token, invalid token, insufficient role, and allowed role.
 
 ## Scope
 
@@ -30,6 +53,13 @@ Require authenticated callers and enforce role-based access control for all API 
 - Shared `auth` package with token parsing and claims abstraction.
 - Integration tests covering allowed/denied cases per endpoint.
 - Documentation updates for required headers and role matrix.
+
+## Delivered
+
+- Auth config wiring in startup/config bootstrap.
+- Shared HTTP/gRPC endpoint-to-role policy map.
+- HTTP middleware + gRPC interceptors integrated with existing transport setup.
+- Transport auth tests covering missing/invalid token, insufficient role, and allowed role.
 
 ## Suggested Implementation Steps
 

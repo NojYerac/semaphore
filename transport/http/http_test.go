@@ -5,12 +5,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/nojyerac/go-lib/auth"
 	"github.com/nojyerac/go-lib/log"
 	libhttp "github.com/nojyerac/go-lib/transport/http"
 	"github.com/nojyerac/semaphore/data"
 	mockdata "github.com/nojyerac/semaphore/mocks/data"
+	"github.com/nojyerac/semaphore/security"
 	. "github.com/nojyerac/semaphore/transport/http"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,6 +22,27 @@ import (
 )
 
 const baseURL = "/api/flags"
+
+const (
+	testIssuer = "semaphore-test"
+	testAud    = "semaphore-api"
+	testSecret = "test-secret"
+)
+
+func authHeaderForRoles(roles ...string) string {
+	claims := jwt.MapClaims{
+		"sub":   "test-user",
+		"iss":   testIssuer,
+		"aud":   testAud,
+		"roles": roles,
+		"exp":   time.Now().Add(time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(testSecret))
+	Expect(err).NotTo(HaveOccurred())
+	return "Bearer " + signed
+}
 
 var _ = Describe("Http", func() {
 	var (
@@ -30,18 +55,32 @@ var _ = Describe("Http", func() {
 		err      error
 		resp     *httptest.ResponseRecorder
 		flagID   string
+		authzHdr string
 	)
 	BeforeEach(func() {
 		flagID = uuid.New().String()
 		mockData = &mockdata.MockDataEngine{}
+		validator := auth.NewValidator(&auth.Configuration{
+			Issuer:     testIssuer,
+			Audience:   testAud,
+			HMACSecret: testSecret,
+		})
 		l := log.NewLogger(log.NewConfiguration(), log.WithOutput(GinkgoWriter))
-		srv = libhttp.NewServer(&libhttp.Configuration{}, libhttp.WithLogger(l))
+		srv = libhttp.NewServer(
+			&libhttp.Configuration{},
+			libhttp.WithLogger(l),
+			libhttp.WithAuthMiddleware(validator, security.HTTPPolicyMap()),
+		)
+		authzHdr = authHeaderForRoles(security.RoleAdmin)
 		RegisterRoutes(mockData, srv)
 	})
 	JustBeforeEach(func() {
 		req, err = http.NewRequest(method, url, body)
 		Expect(err).NotTo(HaveOccurred())
 		req.Header.Set("Content-Type", "application/json")
+		if authzHdr != "" {
+			req.Header.Set("Authorization", authzHdr)
+		}
 		resp = httptest.NewRecorder()
 		srv.ServeHTTP(resp, req)
 	})
@@ -53,10 +92,64 @@ var _ = Describe("Http", func() {
 			method = http.MethodGet
 			url = "/livez"
 			body = http.NoBody
+			authzHdr = ""
 		})
 		It("returns a healthy status", func() {
 			Expect(resp.Code).To(Equal(200))
 			Expect(resp.Body.String()).To(Equal("ok"))
+		})
+	})
+	Describe("auth middleware", func() {
+		BeforeEach(func() {
+			method = http.MethodGet
+			url = baseURL
+			body = http.NoBody
+		})
+
+		Context("when token is missing", func() {
+			BeforeEach(func() {
+				authzHdr = ""
+			})
+
+			It("rejects with 401", func() {
+				Expect(resp.Code).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when token is invalid", func() {
+			BeforeEach(func() {
+				authzHdr = "Bearer not-a-jwt"
+			})
+
+			It("rejects with 401", func() {
+				Expect(resp.Code).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when role is insufficient", func() {
+			BeforeEach(func() {
+				method = http.MethodPost
+				url = baseURL
+				body = strings.NewReader(
+					`{"name":"flag1","enabled":true,"strategies":[{"type":"percentage_rollout","payload":{"percentage":50}}]}`,
+				)
+				authzHdr = authHeaderForRoles(security.RoleReader)
+			})
+
+			It("rejects with 403", func() {
+				Expect(resp.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("when role is allowed", func() {
+			BeforeEach(func() {
+				mockData.On("GetFlags", mock.Anything).Return([]*data.FeatureFlag{}, nil).Once()
+				authzHdr = authHeaderForRoles(security.RoleReader)
+			})
+
+			It("allows request", func() {
+				Expect(resp.Code).To(Equal(http.StatusOK))
+			})
 		})
 	})
 	Describe("GET /api/flags", func() {

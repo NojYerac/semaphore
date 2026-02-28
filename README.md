@@ -10,6 +10,7 @@ Implemented:
 
 - HTTP API for create/read/update/delete/evaluate flag operations
 - gRPC API for create/read/update/delete/evaluate flag operations
+- AuthN/AuthZ enforcement via go-lib middleware/interceptors with shared policy maps
 - Evaluation engine with:
   - `percentage_rollout`
   - `user_targeting`
@@ -19,7 +20,6 @@ Implemented:
 
 Planned next:
 
-- Authentication and role-based authorization
 - End-to-end audit logging exposure
 - GitHub Actions CI/CD
 - First-class Go SDK package
@@ -67,6 +67,45 @@ Service: `flag.FlagService`
 - `Evaluate`
 
 Proto contract: `api/flag.proto`
+
+## Authentication and Authorization
+
+Authentication and role checks are enforced in service startup using shared `go-lib` primitives:
+
+- HTTP: `transport/http.WithAuthMiddleware(validator, policies)`
+- gRPC: `transport/grpc.AuthServerOptions(validator, policies)`
+
+Central policy definitions live in `security/policies.go`.
+
+### Required roles
+
+- Read/evaluate operations require `flag_reader` or `flag_admin`
+- Mutating operations require `flag_admin`
+
+HTTP role mapping:
+
+- `GET /api/flags` -> `flag_reader | flag_admin`
+- `GET /api/flags/{id}` -> `flag_reader | flag_admin`
+- `POST /api/flags/{id}/evaluate` -> `flag_reader | flag_admin`
+- `POST /api/flags` -> `flag_admin`
+- `PUT /api/flags/{id}` -> `flag_admin`
+- `DELETE /api/flags/{id}` -> `flag_admin`
+
+gRPC role mapping:
+
+- `/flag.FlagService/ListFlags` -> `flag_reader | flag_admin`
+- `/flag.FlagService/GetFlag` -> `flag_reader | flag_admin`
+- `/flag.FlagService/Evaluate` -> `flag_reader | flag_admin`
+- `/flag.FlagService/CreateFlag` -> `flag_admin`
+- `/flag.FlagService/UpdateFlag` -> `flag_admin`
+- `/flag.FlagService/DeleteFlag` -> `flag_admin`
+
+Error mapping:
+
+- HTTP auth failures: `401 Unauthorized`
+- HTTP authorization failures: `403 Forbidden`
+- gRPC auth failures: `Unauthenticated`
+- gRPC authorization failures: `PermissionDenied`
 
 ## Data Model (High Level)
 
@@ -120,6 +159,17 @@ go run ./semaphore/main.go
 go run ./testclient/main.go
 ```
 
+`testclient` now signs JWTs for `flag_reader` and `flag_admin` roles.
+Set these env vars to match your running service auth config:
+
+```bash
+export TESTCLIENT_AUTH_ISSUER="semaphore"
+export TESTCLIENT_AUTH_AUDIENCE="semaphore-api"
+export TESTCLIENT_AUTH_HMAC_SECRET="change-me"
+export TESTCLIENT_AUTH_SUBJECT="testclient"
+go run ./testclient/main.go
+```
+
 ## Configuration
 
 Configuration is loaded and validated at startup through shared `go-lib` configuration packages.
@@ -127,6 +177,7 @@ Configuration is loaded and validated at startup through shared `go-lib` configu
 Major configuration areas:
 
 - Logging
+- Auth (`auth_issuer`, `auth_audience`, `auth_hmac_secret`, `auth_clock_skew`)
 - Database
 - HTTP server
 - Transport wiring

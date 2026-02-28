@@ -4,6 +4,11 @@ human_friendly: True
 log_level: debug
 exporter_type: "stdout"
 
+auth_issuer: "semaphore"
+auth_audience: "semaphore-api"
+auth_hmac_secret: "change-me"
+auth_clock_skew: "30s"
+
 no_tls: True
 port: 8080
 
