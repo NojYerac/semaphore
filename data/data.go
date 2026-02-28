@@ -73,7 +73,7 @@ func (f *FeatureFlag) ToProto() (*flag.Flag, error) {
 		Name:        f.Name,
 		Description: f.Description,
 		Enabled:     f.Enabled,
-		Strategies:  make([]*flag.Strategy, len(f.Strategies)),
+		Strategies:  make([]*flag.Strategy, 0, len(f.Strategies)),
 	}
 	for _, s := range f.Strategies {
 		if s.Type == "" {
@@ -253,7 +253,10 @@ func FeatureFlagFromProto(pb *flag.Flag) (*FeatureFlag, error) {
 			return nil, fmt.Errorf("unknown strategy payload type: %T", s.GetPayload())
 		}
 	}
-	return f, validate.Struct(f)
+	if err := validate.Struct(f); err != nil {
+		return nil, fmt.Errorf("invalid feature flag: %w", err)
+	}
+	return f, nil
 }
 
 // AuditLog represents a log entry for flag operations.

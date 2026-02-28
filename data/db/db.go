@@ -174,6 +174,15 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 }
 
 func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) error {
+	tx, err := d.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil || recover() != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
 	query := sq.Update("feature_flags").
 		Set("name", flag.Name).
 		Set("description", flag.Description).
@@ -184,7 +193,31 @@ func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) err
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `DELETE FROM strategies WHERE flag_id = $1`, flag.ID)
+	if err != nil {
+		return err
+	}
+	if len(flag.Strategies) > 0 {
+		stratQuery := sq.Insert("strategies").
+			Columns("flag_id", "type", "payload").
+			PlaceholderFormat(sq.Dollar)
+		for _, strategy := range flag.Strategies {
+			stratQuery = stratQuery.Values(flag.ID, strategy.Type, strategy.Payload)
+		}
+		sql, args, err = stratQuery.ToSql()
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, sql, args...)
+		if err != nil {
+			return err
+		}
+	}
+	err = tx.Commit(ctx)
 	return err
 }
 
