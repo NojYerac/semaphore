@@ -1,9 +1,8 @@
 packages:
-  github.com/nojyerac/semaphore:
+  github.com/nojyerac/semaphore/data:
     config:
-      recursive: True
-      keeptree: True
+      dir: ./mocks/data
       with-expecter: True
       resolve-type-alias: False
       issue-845-fix: True
-      include-regex: "^(Source)$"
+      include-regex: "^(Source|DataEngine)$"

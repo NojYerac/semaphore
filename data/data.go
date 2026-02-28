@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -55,11 +56,11 @@ type Source interface {
 
 // FeatureFlag defines the shape of a flag.
 type FeatureFlag struct {
-	ID          string     `json:"id" db:"id"`
-	Name        string     `json:"name" db:"name"`
+	ID          string     `json:"id" db:"id" validate:"omitempty,uuid4"`
+	Name        string     `json:"name" db:"name" validate:"required"`
 	Description string     `json:"description,omitempty" db:"description"`
 	Enabled     bool       `json:"enabled" db:"enabled"`
-	Strategies  []Strategy `json:"strategies" db:"strategies"`
+	Strategies  Strategies `json:"strategies,omitempty" db:"strategies" validate:"dive"`
 	CreatedAt   time.Time  `json:"createdAt" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updatedAt" db:"updated_at"`
 }
@@ -82,14 +83,35 @@ func (f *FeatureFlag) ToProto() (*flag.Flag, error) {
 	return pb, nil
 }
 
+type Strategies []Strategy
+
+var _ sql.Scanner = (*Strategies)(nil)
+
+func (f *Strategies) Scan(value interface{}) error {
+	*f = make(Strategies, 0)
+	if value == nil {
+		return nil
+	}
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid type for strategies: %T", value)
+	}
+	if err := json.Unmarshal(b, f); err != nil {
+		return fmt.Errorf("failed to unmarshal strategies: %w", err)
+	}
+	return nil
+}
+
 // Strategy defines an evaluation rule.
 // Type is one of "percentage_rollout", "user_targeting", or "group_targeting".
 // Payload is a raw JSON blob containing the strategy specific data.
 // The engine unmarshals it based on the Type value.
 type Strategy struct {
-	Type    string          `json:"type" db:"type"`
+	Type    string          `json:"type" db:"type" validate:"required,oneof=percentage_rollout user_targeting group_targeting"` //nolint:lll // param tag
 	Payload json.RawMessage `json:"payload" db:"payload"`
 }
+
+var _ sql.Scanner = (*Strategy)(nil)
 
 func (s *Strategy) Scan(value interface{}) error {
 	*s = Strategy{}
@@ -191,10 +213,10 @@ func payloadToProto(strategyType string, payload json.RawMessage) interface{} {
 
 // AuditLog represents a log entry for flag operations.
 type AuditLog struct {
-	ID        string    `json:"id" db:"id"`
-	FlagID    string    `json:"flagID" db:"flag_id"`
-	Action    string    `json:"action" db:"action"` // "create", "update", "delete"
-	Timestamp time.Time `json:"timestamp" db:"timestamp"`
-	User      string    `json:"user" db:"user"`
-	Details   string    `json:"details" db:"details"` // JSON string with operation details
+	ID        string          `json:"id" db:"id" validate:"required,uuid4"`
+	FlagID    string          `json:"flagID" db:"flag_id" validate:"required,uuid4"`
+	Action    string          `json:"action" db:"action" validate:"required,oneof=create update delete"` //nolint:lll // param tag
+	Timestamp time.Time       `json:"timestamp" db:"timestamp" validate:"required"`
+	User      string          `json:"userID" db:"user_id" validate:"required,uuid4"`
+	Details   json.RawMessage `json:"details" db:"details"` // JSON string with operation details
 }

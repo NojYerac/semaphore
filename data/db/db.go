@@ -59,7 +59,7 @@ func (d *DataSource) Migrate(ctx context.Context) error {
 		flag_id UUID REFERENCES feature_flags(id),
 		action TEXT NOT NULL,
 		timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-		user TEXT NOT NULL,
+		user_id UUID NOT NULL,
 		details TEXT
 	);
 
@@ -87,9 +87,7 @@ func (d *DataSource) Migrate(ctx context.Context) error {
 func getFlagBaseQuery() sq.SelectBuilder {
 	strategies := `COALESCE(
 		JSON_AGG(JSON_BUILD_OBJECT('type', s.type, 'payload', s.payload))
-		FILTER (WHERE s.id IS NOT NULL),
-		'[]'
-	) AS strategies"`
+		FILTER (WHERE s.id IS NOT NULL), '[]') AS strategies`
 	return sq.Select(
 		"f.id",
 		"f.name",
@@ -99,6 +97,7 @@ func getFlagBaseQuery() sq.SelectBuilder {
 		"f.updated_at",
 		strategies,
 	).
+		PlaceholderFormat(sq.Dollar).
 		From("feature_flags f").
 		LeftJoin("strategies s ON f.id = s.flag_id").
 		GroupBy("f.id", "f.name", "f.description", "f.enabled", "f.created_at", "f.updated_at")
@@ -133,7 +132,8 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 	id := uuid.New().String()
 	query := sq.Insert("feature_flags").
 		Columns("id", "name", "description", "enabled").
-		Values(id, flag.Name, flag.Description, flag.Enabled)
+		Values(id, flag.Name, flag.Description, flag.Enabled).
+		PlaceholderFormat(sq.Dollar)
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return "", err
@@ -156,7 +156,8 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 		return id, err
 	}
 	stratQuery := sq.Insert("strategies").
-		Columns("flag_id", "type", "payload")
+		Columns("flag_id", "type", "payload").
+		PlaceholderFormat(sq.Dollar)
 	for _, strategy := range flag.Strategies {
 		stratQuery = stratQuery.Values(id, strategy.Type, strategy.Payload)
 	}
@@ -177,7 +178,8 @@ func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) err
 		Set("name", flag.Name).
 		Set("description", flag.Description).
 		Set("enabled", flag.Enabled).
-		Where(sq.Eq{"id": flag.ID})
+		Where(sq.Eq{"id": flag.ID}).
+		PlaceholderFormat(sq.Dollar)
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return err
@@ -187,7 +189,7 @@ func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) err
 }
 
 func (d *DataSource) DeleteFlag(ctx context.Context, id string) error {
-	query := sq.Delete("feature_flags").Where(sq.Eq{"id": id})
+	query := sq.Delete("feature_flags").Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar)
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return err
