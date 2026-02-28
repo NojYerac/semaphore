@@ -41,9 +41,31 @@ func main() {
 	}
 	defer cc.Close()
 	flagClient := flag.NewFlagServiceClient(cc)
+
+	var createdGrpcFlagID string
+	if res, err := flagClient.CreateFlag(ctx, &flag.CreateFlagRequest{
+		Flag: &flag.Flag{
+			Name:        "new-grpc-flag",
+			Enabled:     true,
+			Description: "A new flag (gRPC)",
+			Strategies: []*flag.Strategy{{
+				Type: "percentage_rollout",
+				Payload: &flag.Strategy_PercentageRollout{
+					PercentageRollout: &flag.PercentageRollout{
+						Percentage: 50,
+					},
+				},
+			}},
+		},
+	}); err != nil {
+		logger.WithError(err).Error("failed to create flag via gRPC")
+	} else {
+		logger.Infof("Created flag with ID: %s", res.GetId())
+		createdGrpcFlagID = res.GetId()
+	}
 	stream, err := flagClient.ListFlags(ctx, &flag.ListFlagsRequest{})
 	if err != nil {
-		panic(err)
+		logger.WithError(err).Error("failed to list flags via gRPC")
 	}
 	for {
 		resp, err := stream.Recv()
@@ -52,27 +74,43 @@ func main() {
 				logger.Info("flag stream closed by server")
 				break
 			}
-			panic(err)
+			logger.WithError(err).Error("failed to receive flag from stream")
 		}
-		logger.Infof("Received flag: %s", resp.Flag.Name)
+		logger.Infof("Received flag: %+v", resp.Flag)
 	}
-	flagClient.CreateFlag(ctx, &flag.CreateFlagRequest{
+
+	if getRes, err := flagClient.GetFlag(ctx, &flag.GetFlagRequest{Id: createdGrpcFlagID}); err != nil {
+		logger.WithError(err).Error("failed to get flag via gRPC")
+	} else {
+		logger.Infof("Got flag via gRPC: %s", getRes.GetFlag().GetName())
+	}
+	if _, err := flagClient.UpdateFlag(ctx, &flag.UpdateFlagRequest{
 		Flag: &flag.Flag{
-			Name:        "new-grpc-flag",
-			Enabled:     true,
-			Description: "A new flag (gRPC)",
-			Strategies: []*flag.Strategy{
-				{
-					Type: "percentage_rollout",
-					Payload: &flag.Strategy_PercentageRollout{
-						PercentageRollout: &flag.PercentageRollout{
-							Percentage: 50,
-						},
-					},
-				},
-			},
+			Id:          createdGrpcFlagID,
+			Name:        "updated-grpc-flag",
+			Enabled:     false,
+			Description: "An updated flag (gRPC)",
+			Strategies:  []*flag.Strategy{},
 		},
-	})
+	}); err != nil {
+		logger.WithError(err).Error("failed to update flag via gRPC")
+	} else {
+		logger.Info("Updated flag via gRPC")
+	}
+	if evalRes, err := flagClient.Evaluate(ctx, &flag.EvaluateRequest{
+		FlagId:   createdGrpcFlagID,
+		UserId:   uuid.New().String(),
+		GroupIds: []string{uuid.New().String(), uuid.New().String()},
+	}); err != nil {
+		logger.WithError(err).Error("failed to evaluate flag via gRPC")
+	} else {
+		logger.Infof("Evaluated flag via gRPC, enabled: %v", evalRes.GetEnabled())
+	}
+	if _, err := flagClient.DeleteFlag(ctx, &flag.DeleteFlagRequest{Id: createdGrpcFlagID}); err != nil {
+		logger.WithError(err).Error("failed to delete flag via gRPC")
+	} else {
+		logger.Info("Deleted flag via gRPC")
+	}
 
 	// Test HTTP endpoints
 	if statusCode, body, err := do("GET", baseURL, http.NoBody); err != nil {

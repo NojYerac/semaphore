@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/nojyerac/semaphore/pb/flag"
 )
 
@@ -74,12 +75,15 @@ func (f *FeatureFlag) ToProto() (*flag.Flag, error) {
 		Enabled:     f.Enabled,
 		Strategies:  make([]*flag.Strategy, len(f.Strategies)),
 	}
-	var err error
-	for i, s := range f.Strategies {
-		pb.Strategies[i], err = s.ToProto()
+	for _, s := range f.Strategies {
+		if s.Type == "" {
+			continue
+		}
+		pbStrat, err := s.ToProto()
 		if err != nil {
 			return nil, err
 		}
+		pb.Strategies = append(pb.Strategies, pbStrat)
 	}
 	return pb, nil
 }
@@ -132,6 +136,9 @@ func (s *Strategy) Scan(value interface{}) error {
 }
 
 func (s *Strategy) ToProto() (*flag.Strategy, error) {
+	if s == nil {
+		return nil, nil
+	}
 	payload := payloadToProto(s.Type, s.Payload)
 	pb := &flag.Strategy{
 		Type: s.Type,
@@ -212,6 +219,8 @@ func payloadToProto(strategyType string, payload json.RawMessage) interface{} {
 	}
 }
 
+var validate = validator.New()
+
 func FeatureFlagFromProto(pb *flag.Flag) (*FeatureFlag, error) {
 	if pb == nil {
 		return nil, fmt.Errorf("nil protobuf flag")
@@ -225,15 +234,26 @@ func FeatureFlagFromProto(pb *flag.Flag) (*FeatureFlag, error) {
 	}
 	for i, s := range pb.Strategies {
 		f.Strategies[i] = Strategy{
-			Type: s.Type,
+			Type: s.GetType(),
 		}
-		payload, err := json.Marshal(s.Payload)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal strategy payload: %w", err)
+		switch p := s.GetPayload().(type) {
+		case *flag.Strategy_PercentageRollout:
+			f.Strategies[i].Payload, _ = json.Marshal(map[string]interface{}{
+				"percentage": p.PercentageRollout.GetPercentage(),
+			})
+		case *flag.Strategy_UserTargeting:
+			f.Strategies[i].Payload, _ = json.Marshal(map[string]interface{}{
+				"user_ids": p.UserTargeting.GetUserIds(),
+			})
+		case *flag.Strategy_GroupTargeting:
+			f.Strategies[i].Payload, _ = json.Marshal(map[string]interface{}{
+				"group_ids": p.GroupTargeting.GetGroupIds(),
+			})
+		default:
+			return nil, fmt.Errorf("unknown strategy payload type: %T", s.GetPayload())
 		}
-		f.Strategies[i].Payload = payload
 	}
-	return f, nil
+	return f, validate.Struct(f)
 }
 
 // AuditLog represents a log entry for flag operations.
