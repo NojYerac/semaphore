@@ -8,7 +8,7 @@ message GetFlagRequest {
 }
 
 message GetFlagResponse {
-    Flag flags = 1;
+    Flag flag = 1;
 }
 
 message ListFlagsRequest {}

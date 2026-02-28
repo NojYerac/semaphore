@@ -126,9 +126,9 @@ func (_c *MockDataEngine_DeleteFlag_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// EvaluateFlag provides a mock function with given fields: ctx, flagName, userID, groupIDs
-func (_m *MockDataEngine) EvaluateFlag(ctx context.Context, flagName string, userID string, groupIDs []string) (bool, error) {
-	ret := _m.Called(ctx, flagName, userID, groupIDs)
+// EvaluateFlag provides a mock function with given fields: ctx, flagID, userID, groupIDs
+func (_m *MockDataEngine) EvaluateFlag(ctx context.Context, flagID string, userID string, groupIDs []string) (bool, error) {
+	ret := _m.Called(ctx, flagID, userID, groupIDs)
 
 	if len(ret) == 0 {
 		panic("no return value specified for EvaluateFlag")
@@ -137,16 +137,16 @@ func (_m *MockDataEngine) EvaluateFlag(ctx context.Context, flagName string, use
 	var r0 bool
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string) (bool, error)); ok {
-		return rf(ctx, flagName, userID, groupIDs)
+		return rf(ctx, flagID, userID, groupIDs)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string) bool); ok {
-		r0 = rf(ctx, flagName, userID, groupIDs)
+		r0 = rf(ctx, flagID, userID, groupIDs)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string, []string) error); ok {
-		r1 = rf(ctx, flagName, userID, groupIDs)
+		r1 = rf(ctx, flagID, userID, groupIDs)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -161,14 +161,14 @@ type MockDataEngine_EvaluateFlag_Call struct {
 
 // EvaluateFlag is a helper method to define mock.On call
 //   - ctx context.Context
-//   - flagName string
+//   - flagID string
 //   - userID string
 //   - groupIDs []string
-func (_e *MockDataEngine_Expecter) EvaluateFlag(ctx interface{}, flagName interface{}, userID interface{}, groupIDs interface{}) *MockDataEngine_EvaluateFlag_Call {
-	return &MockDataEngine_EvaluateFlag_Call{Call: _e.mock.On("EvaluateFlag", ctx, flagName, userID, groupIDs)}
+func (_e *MockDataEngine_Expecter) EvaluateFlag(ctx interface{}, flagID interface{}, userID interface{}, groupIDs interface{}) *MockDataEngine_EvaluateFlag_Call {
+	return &MockDataEngine_EvaluateFlag_Call{Call: _e.mock.On("EvaluateFlag", ctx, flagID, userID, groupIDs)}
 }
 
-func (_c *MockDataEngine_EvaluateFlag_Call) Run(run func(ctx context.Context, flagName string, userID string, groupIDs []string)) *MockDataEngine_EvaluateFlag_Call {
+func (_c *MockDataEngine_EvaluateFlag_Call) Run(run func(ctx context.Context, flagID string, userID string, groupIDs []string)) *MockDataEngine_EvaluateFlag_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]string))
 	})
