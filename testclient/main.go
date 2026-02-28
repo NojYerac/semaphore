@@ -22,7 +22,7 @@ const (
 	baseURL = "http://localhost:8080/api/flags"
 )
 
-func main() {
+func main() { // nolint
 	logger := log.NewLogger(&log.Configuration{
 		LogLevel:     "debug",
 		HumanFrendly: true,
