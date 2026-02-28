@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+const baseURL = "/api/flags"
+
 var _ = Describe("Http", func() {
 	var (
 		mockData *mockdata.MockDataEngine
@@ -38,7 +40,7 @@ var _ = Describe("Http", func() {
 	})
 	JustBeforeEach(func() {
 		req, err = http.NewRequest(method, url, body)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		req.Header.Set("Content-Type", "application/json")
 		resp = httptest.NewRecorder()
 		srv.ServeHTTP(resp, req)
@@ -60,7 +62,7 @@ var _ = Describe("Http", func() {
 	Describe("GET /api/flags", func() {
 		BeforeEach(func() {
 			method = http.MethodGet
-			url = "/api/flags"
+			url = baseURL
 			body = http.NoBody
 			mockData.On("GetFlags", mock.Anything).Return([]*data.FeatureFlag{
 				{
@@ -92,8 +94,10 @@ var _ = Describe("Http", func() {
 	Describe("POST /api/flags", func() {
 		BeforeEach(func() {
 			method = http.MethodPost
-			url = "/api/flags"
-			body = strings.NewReader(`{"name":"flag1","enabled":true,"strategies":[{"type":"percentage_rollout","payload":{"percentage":50}}]}`)
+			url = baseURL
+			body = strings.NewReader(
+				`{"name":"flag1","enabled":true,"strategies":[{"type":"percentage_rollout","payload":{"percentage":50}}]}`,
+			)
 			mockData.On("CreateFlag", mock.Anything, mock.AnythingOfType("*data.FeatureFlag")).Return(flagID, nil).Once()
 		})
 		It("creates a new flag", func() {
@@ -104,7 +108,7 @@ var _ = Describe("Http", func() {
 	Describe("GET /api/flags/{id}", func() {
 		BeforeEach(func() {
 			method = http.MethodGet
-			url = "/api/flags/" + flagID
+			url = baseURL + "/" + flagID
 			body = http.NoBody
 			mockData.On("GetFlagByID", mock.Anything, flagID).Return(&data.FeatureFlag{
 				ID:      flagID,
@@ -134,8 +138,10 @@ var _ = Describe("Http", func() {
 	Describe("PUT /api/flags/{id}", func() {
 		BeforeEach(func() {
 			method = http.MethodPut
-			url = "/api/flags/" + flagID
-			body = strings.NewReader(`{"name":"flag1","enabled":true,"strategies":[{"type":"percentage_rollout","payload":{"percentage":50}}]}`)
+			url = baseURL + "/" + flagID
+			body = strings.NewReader(
+				`{"name":"flag1","enabled":true,"strategies":[{"type":"percentage_rollout","payload":{"percentage":50}}]}`,
+			)
 			mockData.On("UpdateFlag", mock.Anything, mock.AnythingOfType("*data.FeatureFlag")).Return(nil).Once()
 		})
 		It("updates an existing flag", func() {
@@ -146,7 +152,7 @@ var _ = Describe("Http", func() {
 	Describe("DELETE /api/flags/{id}", func() {
 		BeforeEach(func() {
 			method = http.MethodDelete
-			url = "/api/flags/" + flagID
+			url = baseURL + "/" + flagID
 			body = http.NoBody
 			mockData.On("DeleteFlag", mock.Anything, flagID).Return(nil).Once()
 		})
@@ -158,7 +164,7 @@ var _ = Describe("Http", func() {
 	Describe("POST /api/flags/{id}/evaluate", func() {
 		BeforeEach(func() {
 			method = http.MethodPost
-			url = "/api/flags/" + flagID + "/evaluate"
+			url = baseURL + "/" + flagID + "/evaluate"
 			body = strings.NewReader(`{"userID":"user1","groupIDs":["group1"]}`)
 			mockData.On("EvaluateFlag", mock.Anything, flagID, "user1", []string{"group1"}).Return(true, nil).Once()
 		})
