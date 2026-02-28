@@ -1,43 +1,35 @@
-# 1️⃣ Lightweight Feature-Flag / Rollout Engine (LaunchDarkly-Adjacent)
+# Semaphore Plans
 
-This aligns with:
+This directory now tracks **implementation tasks that are not yet represented in code**.
 
-* API platforms
-* Release management
-* Distributed systems
-* Enterprise governance
+## Completed plan areas (removed)
 
-## Project Concept
+The previous design docs were removed because these areas already exist in the repository in working form:
 
-Build a simplified feature management service:
+- Core architecture and service wiring
+- Data model and persistence for flags/strategies
+- HTTP and gRPC CRUD/evaluate APIs
+- Evaluation engine (percentage, user, group targeting)
 
-* Written in **Go**
-* REST + gRPC API
-* Backed by Postgres or Redis
-* Supports:
+## Active backlog
 
-  * Feature flags
-  * Percentage rollouts
-  * User targeting rules
-  * Audit logs
-* Kubernetes deployable
-* Includes metrics + structured logging
+1. [01-AUTHN-AUTHZ.md](./01-AUTHN-AUTHZ.md)  
+  Add authentication + role-based authorization across HTTP and gRPC.
+2. [02-AUDIT-LOGGING.md](./02-AUDIT-LOGGING.md)  
+  Implement end-to-end audit event capture, querying, and exposure.
+3. [03-CI-CD-GITHUB-ACTIONS.md](./03-CI-CD-GITHUB-ACTIONS.md)  
+  Add repeatable CI/CD pipelines using GitHub Actions.
+4. [04-GO-CLIENT-SDK.md](./04-GO-CLIENT-SDK.md)  
+  Build a supported SDK package instead of relying on generated stubs only.
+5. [05-OPERATIONS-HARDENING.md](./05-OPERATIONS-HARDENING.md)  
+  Add production hardening: limits, lifecycle, migrations, and reliability checks.
 
-## Stretch Goals
+## Prioritization
 
-* Real-time streaming updates via SSE or WebSockets
-* Simple UI dashboard (minimal React frontend)
-* Multi-tenant flag namespaces
-* Rate limiting + API keys
+Recommended order for highest impact:
 
-## Why This Is High Signal
-
-It demonstrates:
-
-* API design
-* Domain modeling
-* Governance workflows
-* Observability
-* Real-world SaaS thinking
-
-Hiring managers will instantly see you understand modern DevOps patterns.
+1. AuthN/AuthZ
+2. Audit logging
+3. CI pipeline
+4. SDK
+5. Operational hardening
