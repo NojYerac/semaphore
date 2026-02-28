@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/nojyerac/go-lib/auth"
 	libdb "github.com/nojyerac/go-lib/db"
 	"github.com/nojyerac/go-lib/health"
 	"github.com/nojyerac/go-lib/log"
@@ -20,6 +21,7 @@ import (
 	"github.com/nojyerac/semaphore/data"
 	"github.com/nojyerac/semaphore/data/db"
 	"github.com/nojyerac/semaphore/data/engine"
+	"github.com/nojyerac/semaphore/security"
 	"github.com/nojyerac/semaphore/transport/http"
 	"github.com/nojyerac/semaphore/transport/rpc"
 )
@@ -71,6 +73,7 @@ func main() {
 	}
 
 	dataEngine := data.NewDataEngine(source, engine.NewEngine(source))
+	validator := auth.NewValidator(config.AuthConfig)
 
 	// Initialize transports
 	httpServer := libhttp.NewServer(
@@ -78,11 +81,15 @@ func main() {
 		libhttp.WithLogger(logger),
 		libhttp.WithHealthChecker(checker),
 		libhttp.WithMetricsHandler(metricHandler),
+		libhttp.WithAuthMiddleware(validator, security.HTTPPolicyMap()),
 	)
 	http.RegisterRoutes(dataEngine, httpServer)
 
 	grpc.SetLogger(logger)
-	grpcServer := grpc.NewServer(rpc.RegisterServices(dataEngine))
+	grpcServer := grpc.NewServer(
+		rpc.RegisterServices(dataEngine),
+		grpc.AuthServerOptions(validator, security.GRPCPolicyMap())...,
+	)
 
 	trans, err := transport.NewServer(
 		config.TransConfig,
