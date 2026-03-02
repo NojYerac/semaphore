@@ -121,6 +121,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nojyerac/go-lib v0.0.0-20260228211914-be07d111a7a8 h1:kKlAau40s/SKOGE0owV6gzwRU4i3TUYe0ubAUAc+q2k=
 github.com/nojyerac/go-lib v0.0.0-20260228211914-be07d111a7a8/go.mod h1:LSSzYrvQftDFvbZIm+sMv7Rqsi49yNHWMhcqpsZ01HM=
+github.com/nojyerac/go-lib v0.0.0-20260302202957-413576f681c8 h1:0QEUs8x5vSVZqYHhQpL69QTXBG5Q1WBdDNernHItITI=
+github.com/nojyerac/go-lib v0.0.0-20260302202957-413576f681c8/go.mod h1:c+QDuVzyAg+IUF/Wq6GcLroAqQFl+kl7qxJZEQRRfGg=
 github.com/onsi/ginkgo/v2 v2.28.1 h1:S4hj+HbZp40fNKuLUQOYLDgZLwNUVn19N3Atb98NCyI=
 github.com/onsi/ginkgo/v2 v2.28.1/go.mod h1:CLtbVInNckU3/+gC8LzkGUb9oF+e8W8TdUsxPwvdOgE=
 github.com/onsi/gomega v1.39.1 h1:1IJLAad4zjPn2PsnhH70V4DKRFlrCzGBNrNaru+Vf28=
