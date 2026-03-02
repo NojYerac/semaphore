@@ -184,7 +184,9 @@ func main() { // nolint
 		"enabled": false,
 		"strategies": []
 	}`
-	if statusCode, body, err := do("PUT", baseURL+"/"+createdFlagID, strings.NewReader(updateFlagBody), adminToken); err != nil {
+	if statusCode, body, err := do(
+		"PUT", baseURL+"/"+createdFlagID, strings.NewReader(updateFlagBody), adminToken,
+	); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
@@ -222,7 +224,7 @@ func withBearer(ctx context.Context, token string) context.Context {
 func issueToken(roles ...string) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"sub":   getenv("TESTCLIENT_AUTH_SUBJECT", "testclient"),
+		"sub":   getenv("TESTCLIENT_AUTH_SUBJECT", uuid.NewString()),
 		"iss":   getenv("TESTCLIENT_AUTH_ISSUER", "semaphore"),
 		"aud":   getenv("TESTCLIENT_AUTH_AUDIENCE", "semaphore-api"),
 		"roles": roles,

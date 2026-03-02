@@ -9,7 +9,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.4
-	github.com/nojyerac/go-lib v0.0.0-20260228211914-be07d111a7a8
+	github.com/nojyerac/go-lib v0.0.0-20260302202957-413576f681c8
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/sirupsen/logrus v1.9.4

@@ -43,7 +43,7 @@ var _ = Describe("Data", func() {
 			var strategies Strategies
 			err := strategies.Scan(nil)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(strategies).To(HaveLen(0))
+			Expect(strategies).To(BeEmpty())
 		})
 
 		It("returns error for invalid value type", func() {

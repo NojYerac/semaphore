@@ -2,7 +2,7 @@
 log_config_on_init: True
 human_friendly: True
 log_level: debug
-exporter_type: "stdout"
+exporter_type: "noop"
 
 auth_issuer: "semaphore"
 auth_audience: "semaphore-api"
@@ -13,6 +13,8 @@ no_tls: True
 port: 8080
 
 database_connection_string: "postgres://localhost:5432/postgres?sslmode=disable"
+
+audit_logger_type: "stdout"
 
 # tls_public_cert: "example_configs/testdata/pub.crt"
 # tls_private_key: "example_configs/testdata/priv.key"

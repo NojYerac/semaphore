@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/nojyerac/go-lib/audit"
 	"github.com/nojyerac/go-lib/auth"
 	"github.com/nojyerac/go-lib/config"
 	"github.com/nojyerac/go-lib/db"
@@ -15,6 +16,7 @@ import (
 var (
 	LogConfig    *log.Configuration
 	AuthConfig   *auth.Configuration
+	AuditConfig  *audit.Configuration
 	DBConfig     *db.Configuration
 	TransConfig  *transport.Configuration
 	TraceConfig  *tracing.Configuration
@@ -30,6 +32,10 @@ func InitAndValidate() error {
 	}
 	AuthConfig = auth.NewConfiguration()
 	if err := loader.RegisterConfig(AuthConfig); err != nil {
+		return err
+	}
+	AuditConfig = audit.NewConfiguration()
+	if err := loader.RegisterConfig(AuditConfig); err != nil {
 		return err
 	}
 	DBConfig = db.NewConfiguration()
