@@ -258,13 +258,3 @@ func FeatureFlagFromProto(pb *flag.Flag) (*FeatureFlag, error) {
 	}
 	return f, nil
 }
-
-// AuditLog represents a log entry for flag operations.
-type AuditLog struct {
-	ID        string          `json:"id" db:"id" validate:"required,uuid4"`
-	FlagID    string          `json:"flagID" db:"flag_id" validate:"required,uuid4"`
-	Action    string          `json:"action" db:"action" validate:"required,oneof=create update delete"` //nolint:lll // param tag
-	Timestamp time.Time       `json:"timestamp" db:"timestamp" validate:"required"`
-	User      string          `json:"userID" db:"user_id" validate:"required,uuid4"`
-	Details   json.RawMessage `json:"details" db:"details"` // JSON string with operation details
-}

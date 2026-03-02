@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/nojyerac/go-lib/audit"
 	"github.com/nojyerac/go-lib/auth"
 	libdb "github.com/nojyerac/go-lib/db"
 	"github.com/nojyerac/go-lib/health"
@@ -26,6 +27,7 @@ import (
 	"github.com/nojyerac/semaphore/transport/rpc"
 )
 
+//nolint:funlen // main orchestrates process bootstrap and shutdown wiring in one place.
 func main() {
 	// Initialize configuration
 	version.SetSemVer("0.0.0")
@@ -66,8 +68,12 @@ func main() {
 	if err := database.Open(ctx); err != nil {
 		logger.WithError(err).Panic("failed to connect to database")
 	}
+	auditLogger, err := audit.NewAuditLogger(config.AuditConfig)
+	if err != nil {
+		logger.WithError(err).Panic("failed to create audit logger")
+	}
 
-	source, err := db.NewDataSource(ctx, database)
+	source, err := db.NewDataSource(ctx, database, db.WithAuditLogger(auditLogger))
 	if err != nil {
 		logger.WithError(err).Panic("failed to create data source")
 	}
