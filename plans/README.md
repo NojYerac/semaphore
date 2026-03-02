@@ -15,11 +15,13 @@ The previous design docs were removed because these areas already exist in the r
 
 1. [02-AUDIT-LOGGING.md](./02-AUDIT-LOGGING.md)  
   Implement end-to-end audit event capture, querying, and exposure.
-2. [03-CI-CD-GITHUB-ACTIONS.md](./03-CI-CD-GITHUB-ACTIONS.md)  
+2. [02B-EXTERNAL-AUDIT-LOGGING.md](./02B-EXTERNAL-AUDIT-LOGGING.md)  
+  Externalize audit delivery using outbox + async publisher + immutable sink.
+3. [03-CI-CD-GITHUB-ACTIONS.md](./03-CI-CD-GITHUB-ACTIONS.md)  
   Add repeatable CI/CD pipelines using GitHub Actions.
-3. [04-GO-CLIENT-SDK.md](./04-GO-CLIENT-SDK.md)  
+4. [04-GO-CLIENT-SDK.md](./04-GO-CLIENT-SDK.md)  
   Build a supported SDK package instead of relying on generated stubs only.
-4. [05-OPERATIONS-HARDENING.md](./05-OPERATIONS-HARDENING.md)  
+5. [05-OPERATIONS-HARDENING.md](./05-OPERATIONS-HARDENING.md)  
   Add production hardening: limits, lifecycle, migrations, and reliability checks.
 
 ## Completed
@@ -31,6 +33,7 @@ The previous design docs were removed because these areas already exist in the r
 Recommended order for highest impact:
 
 1. Audit logging
-2. CI pipeline
-3. SDK
-4. Operational hardening
+2. Externalized audit logging
+3. CI pipeline
+4. SDK
+5. Operational hardening

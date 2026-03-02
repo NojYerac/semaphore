@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/nojyerac/go-lib/auth"
 	"github.com/nojyerac/go-lib/log"
 	"github.com/nojyerac/go-lib/tracing"
 	libhttp "github.com/nojyerac/go-lib/transport/http"
@@ -93,6 +94,10 @@ func (r *Routes) GetFlagHandler(w http.ResponseWriter, req *http.Request) {
 func (r *Routes) UpdateFlagHandler(w http.ResponseWriter, req *http.Request) {
 	ctx, span := r.t.Start(req.Context(), "UpdateFlagHandler")
 	defer span.End()
+	claims, ok := auth.FromContext(ctx)
+	if ok {
+		log.FromContext(ctx).WithField("actor", claims.Subject).Info("updating flag")
+	}
 	id := req.PathValue("id")
 	if !r.requireJSONContentType(w, req) {
 		return

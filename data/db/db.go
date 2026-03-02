@@ -2,10 +2,15 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/nojyerac/go-lib/audit"
+	"github.com/nojyerac/go-lib/auth"
 	"github.com/nojyerac/go-lib/db"
 	"github.com/nojyerac/semaphore/data"
 )
@@ -14,13 +19,41 @@ var _ data.Source = (*DataSource)(nil)
 
 type DataSource struct {
 	db db.Database
+	al audit.AuditLogger
 }
 
-func NewDataSource(ctx context.Context, database db.Database) (*DataSource, error) {
+type Option func(*DataSource)
+
+const (
+	auditActionFlagCreated = "flag.created"
+	auditActionFlagUpdated = "flag.updated"
+	auditActionFlagDeleted = "flag.deleted"
+	defaultAuditActorID    = "11111111-1111-4111-8111-111111111111"
+)
+
+func WithAuditLogger(logger audit.AuditLogger) Option {
+	return func(source *DataSource) {
+		if source == nil || logger == nil {
+			return
+		}
+		source.al = logger
+	}
+}
+
+func NewDataSource(ctx context.Context, database db.Database, opts ...Option) (*DataSource, error) {
+	auditLogger, err := audit.NewAuditLogger(audit.NewConfiguration())
+	if err != nil {
+		return nil, err
+	}
+
 	dataSource := &DataSource{
 		db: database,
+		al: auditLogger,
 	}
-	err := dataSource.Migrate(ctx)
+	for _, opt := range opts {
+		opt(dataSource)
+	}
+	err = dataSource.Migrate(ctx)
 	return dataSource, err
 }
 
@@ -53,15 +86,6 @@ func (d *DataSource) Migrate(ctx context.Context) error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_strategies_flag_id ON strategies(flag_id);
-
-	CREATE TABLE IF NOT EXISTS audit_logs (
-		id UUID PRIMARY KEY,
-		flag_id UUID REFERENCES feature_flags(id),
-		action TEXT NOT NULL,
-		timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-		user_id UUID NOT NULL,
-		details TEXT
-	);
 
 	CREATE OR REPLACE FUNCTION update_timestamp() RETURNS trigger AS $$
 	BEGIN
@@ -105,23 +129,27 @@ func getFlagBaseQuery() sq.SelectBuilder {
 
 func (d *DataSource) GetFlags(ctx context.Context) ([]*data.FeatureFlag, error) {
 	query := getFlagBaseQuery()
-	sql, args, err := query.ToSql()
+	querySQL, args, err := query.ToSql()
 	if err != nil {
 		return nil, err
 	}
 	flags := make([]*data.FeatureFlag, 0)
-	err = d.db.Select(ctx, &flags, sql, args...)
+	err = d.db.Select(ctx, &flags, querySQL, args...)
 	return flags, err
 }
 
 func (d *DataSource) GetFlagByID(ctx context.Context, id string) (*data.FeatureFlag, error) {
+	return getFlagByID(ctx, d.db, id)
+}
+
+func getFlagByID(ctx context.Context, executor db.DataInterface, id string) (*data.FeatureFlag, error) {
 	query := getFlagBaseQuery().Where(sq.Eq{"f.id": id})
-	sql, args, err := query.ToSql()
+	querySQL, args, err := query.ToSql()
 	if err != nil {
 		return nil, err
 	}
 	flag := &data.FeatureFlag{}
-	err = d.db.Get(ctx, flag, sql, args...)
+	err = executor.Get(ctx, flag, querySQL, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +162,7 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 		Columns("id", "name", "description", "enabled").
 		Values(id, flag.Name, flag.Description, flag.Enabled).
 		PlaceholderFormat(sq.Dollar)
-	sql, args, err := query.ToSql()
+	querySQL, args, err := query.ToSql()
 	if err != nil {
 		return "", err
 	}
@@ -147,25 +175,29 @@ func (d *DataSource) CreateFlag(ctx context.Context, flag *data.FeatureFlag) (st
 			_ = tx.Rollback(ctx)
 		}
 	}()
-	_, err = tx.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, querySQL, args...)
 	if err != nil {
 		return "", err
 	}
-	if len(flag.Strategies) == 0 {
-		err = tx.Commit(ctx)
-		return id, err
+	if len(flag.Strategies) > 0 {
+		stratQuery := sq.Insert("strategies").
+			Columns("flag_id", "type", "payload").
+			PlaceholderFormat(sq.Dollar)
+		for _, strategy := range flag.Strategies {
+			stratQuery = stratQuery.Values(id, strategy.Type, strategy.Payload)
+		}
+		querySQL, args, err = stratQuery.ToSql()
+		if err != nil {
+			return id, err
+		}
+		_, err = tx.Exec(ctx, querySQL, args...)
+		if err != nil {
+			return "", err
+		}
 	}
-	stratQuery := sq.Insert("strategies").
-		Columns("flag_id", "type", "payload").
-		PlaceholderFormat(sq.Dollar)
-	for _, strategy := range flag.Strategies {
-		stratQuery = stratQuery.Values(id, strategy.Type, strategy.Payload)
-	}
-	sql, args, err = stratQuery.ToSql()
-	if err != nil {
-		return id, err
-	}
-	_, err = tx.Exec(ctx, sql, args...)
+	flagForAudit := *flag
+	flagForAudit.ID = id
+	err = d.logCreate(ctx, &flagForAudit)
 	if err != nil {
 		return "", err
 	}
@@ -183,17 +215,21 @@ func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) err
 			_ = tx.Rollback(ctx)
 		}
 	}()
+	before, err := getFlagByID(ctx, tx, flag.ID)
+	if err != nil {
+		return err
+	}
 	query := sq.Update("feature_flags").
 		Set("name", flag.Name).
 		Set("description", flag.Description).
 		Set("enabled", flag.Enabled).
 		Where(sq.Eq{"id": flag.ID}).
 		PlaceholderFormat(sq.Dollar)
-	sql, args, err := query.ToSql()
+	querySQL, args, err := query.ToSql()
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, querySQL, args...)
 	if err != nil {
 		return err
 	}
@@ -208,26 +244,55 @@ func (d *DataSource) UpdateFlag(ctx context.Context, flag *data.FeatureFlag) err
 		for _, strategy := range flag.Strategies {
 			stratQuery = stratQuery.Values(flag.ID, strategy.Type, strategy.Payload)
 		}
-		sql, args, err = stratQuery.ToSql()
+		querySQL, args, err = stratQuery.ToSql()
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec(ctx, sql, args...)
+		_, err = tx.Exec(ctx, querySQL, args...)
 		if err != nil {
 			return err
 		}
+	}
+	err = d.logUpdate(ctx, before, flag)
+	if err != nil {
+		return err
 	}
 	err = tx.Commit(ctx)
 	return err
 }
 
 func (d *DataSource) DeleteFlag(ctx context.Context, id string) error {
-	query := sq.Delete("feature_flags").Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar)
-	sql, args, err := query.ToSql()
+	tx, err := d.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(ctx, sql, args...)
+	defer func() {
+		if err != nil || recover() != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	before, err := getFlagByID(ctx, tx, id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	query := sq.Delete("feature_flags").Where(sq.Eq{"id": id}).PlaceholderFormat(sq.Dollar)
+	querySQL, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, querySQL, args...)
+	if err != nil {
+		return err
+	}
+
+	err = d.logDelete(ctx, before)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(ctx)
 	return err
 }
 
@@ -240,6 +305,70 @@ func (d *DataSource) EvaluateFlag(ctx context.Context, flagID, userID string) (b
 	return flag.Enabled, nil
 }
 
-func (d *DataSource) GetAuditLogs(ctx context.Context, flagID string) ([]data.AuditLog, error) {
-	return nil, nil // Stub implementation
+func (d *DataSource) logCreate(ctx context.Context, flag *data.FeatureFlag) error {
+	actorID, err := auditActor(ctx)
+	if err != nil {
+		return err
+	}
+
+	return d.al.LogChange(ctx, actorID, auditActionFlagCreated, nil, flagToAuditMap(flag))
+}
+
+func (d *DataSource) logUpdate(ctx context.Context, before, after *data.FeatureFlag) error {
+	actorID, err := auditActor(ctx)
+	if err != nil {
+		return err
+	}
+	beforeMap := flagToAuditMap(before)
+	afterMap := flagToAuditMap(after)
+
+	return d.al.LogChange(ctx, actorID, auditActionFlagUpdated, beforeMap, afterMap)
+}
+
+func (d *DataSource) logDelete(ctx context.Context, before *data.FeatureFlag) error {
+	actorID, err := auditActor(ctx)
+	if err != nil {
+		return err
+	}
+
+	return d.al.LogChange(ctx, actorID, auditActionFlagDeleted, flagToAuditMap(before), nil)
+}
+
+func auditActor(ctx context.Context) (actorID string, err error) {
+	claims, ok := auth.FromContext(ctx)
+	if !ok || claims == nil || claims.Subject == "" {
+		return "", errors.New("no actor claims in context")
+	}
+	parsed, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Version() == 4 {
+		return parsed.String(), nil
+	}
+	return "", errors.New("invalid actor UUID")
+}
+
+func flagToAuditMap(flag *data.FeatureFlag) map[string]any {
+	if flag == nil {
+		return nil
+	}
+	var err error
+	var strategies []byte
+	if (len(flag.Strategies) == 0) || flag.Strategies == nil {
+		strategies = []byte("[]")
+	} else {
+		strategies, err = json.Marshal(flag.Strategies)
+	}
+	if err != nil {
+		strategies = []byte("[]")
+	}
+
+	return map[string]any{
+		"id":          flag.ID,
+		"name":        flag.Name,
+		"description": flag.Description,
+		"enabled":     flag.Enabled,
+		"strategies":  string(strategies),
+	}
 }
