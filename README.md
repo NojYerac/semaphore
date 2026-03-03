@@ -17,10 +17,11 @@ Implemented:
   - `group_targeting`
 - PostgreSQL-backed persistence for flags and strategies
 - Service telemetry hooks (logging, tracing, metrics, health)
+- **Mutation Audit Logging** (Transaction-safe writes for flag changes)
 
 Planned next:
 
-- End-to-end audit logging exposure
+- Audit retrieval API (HTTP/gRPC)
 - GitHub Actions CI/CD
 - First-class Go SDK package
 - Operational hardening (limits, migrations, rate limiting)

@@ -1,8 +1,8 @@
-# Task 01: Authentication and Authorization
+# Task 01: Authentication and Authorization (DONE)
 
 ## Status
 
-Implemented on 2026-02-28.
+Implemented on 2026-02-28. Confirmed by Minerva Audit 2026-03-03.
 
 ## Problem
 
