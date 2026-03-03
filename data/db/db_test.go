@@ -53,7 +53,11 @@ var _ = Describe("Db", func() {
 		Expect(conn.Open(ctx)).To(Succeed())
 
 		sqlMock.ExpectExec("CREATE TABLE IF NOT EXISTS feature_flags").WillReturnResult(sqlmock.NewResult(0, 0))
-		auditLog, err = audit.NewAuditLogger(&audit.Configuration{AuditLoggerType: "stdout"}, audit.WithOutput(auditEntries), audit.WithTimeNow(func() time.Time { return mockTime }))
+		auditLog, err = audit.NewAuditLogger(
+			&audit.Configuration{AuditLoggerType: "stdout"},
+			audit.WithOutput(auditEntries),
+			audit.WithTimeNow(func() time.Time { return mockTime }),
+		)
 		Expect(err).ToNot(HaveOccurred())
 		dataSource, err = NewDataSource(ctx, conn, WithAuditLogger(auditLog))
 		Expect(err).ToNot(HaveOccurred())

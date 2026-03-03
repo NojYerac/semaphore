@@ -205,7 +205,7 @@ func do(method, url string, body io.Reader, bearerToken string) (code int, bodyS
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
-	res, err := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req) // nolint:gosec // test client, not a security risk here
 	if err != nil {
 		return
 	}

@@ -1,4 +1,7 @@
-# Task 03: CI/CD with GitHub Actions
+# Task 03: CI/CD with GitHub Actions (PLANNED / STALLED)
+
+## Status
+**Pending Implementation** (Identified as missing in Minerva Audit 2026-03-03; no `.github/workflows/` directory exists)
 
 ## Problem
 

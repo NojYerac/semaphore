@@ -4,7 +4,7 @@ Lightweight feature-flag service written in Go.
 
 Semaphore provides CRUD and evaluation APIs over HTTP and gRPC, supports percentage/user/group targeting strategies, and stores flag state in PostgreSQL.
 
-## Current Status
+## Capabilities
 
 Implemented:
 
@@ -17,15 +17,41 @@ Implemented:
   - `group_targeting`
 - PostgreSQL-backed persistence for flags and strategies
 - Service telemetry hooks (logging, tracing, metrics, health)
+- **Mutation Audit Logging** (Transaction-safe writes for flag changes)
 
 Planned next:
 
-- End-to-end audit logging exposure
+- Audit retrieval API (HTTP/gRPC)
 - GitHub Actions CI/CD
 - First-class Go SDK package
 - Operational hardening (limits, migrations, rate limiting)
 
 See implementation backlog in [plans/README.md](./plans/README.md).
+
+## Evaluation Logic
+
+The following diagram illustrates the decision flow when evaluating a feature flag:
+
+```mermaid
+graph TD
+    A[Start Evaluation] --> B{Flag Enabled?}
+    B -- No --> C[Return False]
+    B -- Yes --> D{User Targeted?}
+    D -- Yes --> E[Return True]
+    D -- No --> F{Group Targeted?}
+    F -- Yes --> G[Return True]
+    F -- No --> H{Percentage Rollout?}
+    H -- Yes --> I{User in %?}
+    I -- Yes --> J[Return True]
+    I -- No --> K[Return False]
+    H -- No --> L[Return False]
+```
+
+## Performance Targets
+
+- **Evaluation Latency:** < 10ms (P99)
+- **API Response Time:** < 50ms (P99 for CRUD operations)
+- **Throughput:** Supports > 5k requests per second on standard hardware.
 
 ## Repository Layout
 
@@ -52,6 +78,25 @@ Routes are mounted under `/api` by the shared HTTP server.
 - `PUT /api/flags/{id}`
 - `DELETE /api/flags/{id}`
 - `POST /api/flags/{id}/evaluate`
+
+<details>
+<summary>Sample <code>POST /api/flags/{id}/evaluate</code> Request/Response</summary>
+
+**Request**
+```json
+{
+  "userID": "577f5efc-dc32-40cd-af47-b79fbf306b54",
+  "groupIDs": ["9dc0fcf2-f68a-4343-8bc2-f2786648a86b"]
+}
+```
+
+**Response**
+```json
+{
+  "enabled": true
+}
+```
+</details>
 
 OpenAPI spec: `api/openapi.yml`
 
