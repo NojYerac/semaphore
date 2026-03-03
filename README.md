@@ -85,21 +85,15 @@ Routes are mounted under `/api` by the shared HTTP server.
 **Request**
 ```json
 {
-  "user_id": "user-123",
-  "groups": ["beta-testers", "internal-staff"],
-  "context": {
-    "region": "us-east-1"
-  }
+  "userID": "577f5efc-dc32-40cd-af47-b79fbf306b54",
+  "groupIDs": ["9dc0fcf2-f68a-4343-8bc2-f2786648a86b"]
 }
 ```
 
 **Response**
 ```json
 {
-  "flag_id": "feature-new-ui",
-  "enabled": true,
-  "strategy": "user_targeting",
-  "timestamp": "2026-03-02T23:15:00Z"
+  "enabled": true
 }
 ```
 </details>
@@ -171,9 +165,6 @@ Strategy payload examples:
 - `percentage_rollout`: `{ "percentage": 50 }`
 - `user_targeting`: `{ "user_ids": ["<uuid>"] }`
 - `group_targeting`: `{ "group_ids": ["<uuid>"] }`
-
-### Database Migrations
-Schema is managed via `golang-migrate`. Migrations are located in `data/db/migrations` and applied automatically on service start or manually via CLI.
 
 ## Local Development
 
