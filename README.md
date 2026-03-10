@@ -18,9 +18,48 @@ Built as a learning project to explore Go microservice patterns, gRPC/HTTP trans
 
 ## Quick Demo
 
+### Option 1: Docker Compose (Recommended)
+
+**Get started in under a minute:**
+
+```bash
+# Clone the repository
+git clone https://github.com/NojYerac/semaphore.git
+cd semaphore
+
+# Start PostgreSQL + Semaphore with one command
+docker-compose up
+
+# That's it! The service is running at:
+# - HTTP API: http://localhost:8080
+# - gRPC API: localhost:9090
+# - Health: http://localhost:8080/health
+```
+
+The docker-compose setup includes:
+- PostgreSQL database with automatic schema migration
+- Semaphore API service (HTTP + gRPC)
+- Health checks for both services
+- Environment variable configuration via `.env` file (optional)
+
+**Customize settings (optional):**
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env to customize database credentials, ports, auth secrets, etc.
+nano .env
+
+# Restart with your custom config
+docker-compose down && docker-compose up
+```
+
+### Option 2: Local Development
+
+**Prerequisites:** PostgreSQL running locally, Go 1.25+
+
 **1. Start the service:**
 ```bash
-# Prerequisites: PostgreSQL running locally
 export SEMAPHORE_DB_HOST=localhost
 export SEMAPHORE_DB_PORT=5432
 export SEMAPHORE_DB_NAME=semaphore

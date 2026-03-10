@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: semaphore-db
+    environment:
+      POSTGRES_DB: ${SEMAPHORE_DB_NAME:-semaphore}
+      POSTGRES_USER: ${SEMAPHORE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${SEMAPHORE_DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${SEMAPHORE_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEMAPHORE_DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semaphore-net
+
+  semaphore:
+    build:
+      context: ..
+      dockerfile: semaphore/Dockerfile
+    container_name: semaphore-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      SEMAPHORE_DB_HOST: postgres
+      SEMAPHORE_DB_PORT: 5432
+      SEMAPHORE_DB_NAME: ${SEMAPHORE_DB_NAME:-semaphore}
+      SEMAPHORE_DB_USER: ${SEMAPHORE_DB_USER:-postgres}
+      SEMAPHORE_DB_PASSWORD: ${SEMAPHORE_DB_PASSWORD:-postgres}
+      SEMAPHORE_DB_SSLMODE: ${SEMAPHORE_DB_SSLMODE:-disable}
+      
+      # Auth
+      SEMAPHORE_AUTH_ISSUER: ${SEMAPHORE_AUTH_ISSUER:-semaphore}
+      SEMAPHORE_AUTH_AUDIENCE: ${SEMAPHORE_AUTH_AUDIENCE:-semaphore-api}
+      SEMAPHORE_AUTH_HMAC_SECRET: ${SEMAPHORE_AUTH_HMAC_SECRET:-change-me-in-production}
+      SEMAPHORE_AUTH_CLOCK_SKEW: ${SEMAPHORE_AUTH_CLOCK_SKEW:-10s}
+      
+      # HTTP Server
+      SEMAPHORE_HTTP_PORT: ${SEMAPHORE_HTTP_PORT:-8080}
+      SEMAPHORE_HTTP_HOST: ${SEMAPHORE_HTTP_HOST:-0.0.0.0}
+      
+      # gRPC Server
+      SEMAPHORE_GRPC_PORT: ${SEMAPHORE_GRPC_PORT:-9090}
+      SEMAPHORE_GRPC_HOST: ${SEMAPHORE_GRPC_HOST:-0.0.0.0}
+      
+      # Logging
+      SEMAPHORE_LOG_LEVEL: ${SEMAPHORE_LOG_LEVEL:-info}
+      SEMAPHORE_LOG_FORMAT: ${SEMAPHORE_LOG_FORMAT:-json}
+      
+      # Tracing
+      SEMAPHORE_TRACE_ENABLED: ${SEMAPHORE_TRACE_ENABLED:-false}
+      SEMAPHORE_TRACE_EXPORTER: ${SEMAPHORE_TRACE_EXPORTER:-stdout}
+      
+      # Health
+      SEMAPHORE_HEALTH_PORT: ${SEMAPHORE_HEALTH_PORT:-8081}
+    ports:
+      - "${SEMAPHORE_HTTP_PORT:-8080}:8080"
+      - "${SEMAPHORE_GRPC_PORT:-9090}:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - semaphore-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  semaphore-net:
+    driver: bridge
