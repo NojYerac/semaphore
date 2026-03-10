@@ -7,16 +7,16 @@ WORKDIR /build
 RUN apk add --no-cache git ca-certificates
 
 # Copy go.mod and go.sum first for better layer caching
-COPY go.mod go.sum ./
+COPY semaphore/go.mod semaphore/go.sum ./
 
 # Copy go-lib dependency (required by replace directive)
-COPY ../go-lib /go-lib
+COPY go-lib /go-lib
 
 # Download dependencies
 RUN go mod download
 
 # Copy source code
-COPY . .
+COPY semaphore .
 
 # Build the binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build \
@@ -29,8 +29,8 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+# Install runtime dependencies (wget needed for health checks)
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1000 semaphore && \
