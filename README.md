@@ -318,6 +318,49 @@ export TESTCLIENT_AUTH_SUBJECT="testclient"
 go run ./testclient/main.go
 ```
 
+## Observability
+
+Semaphore exposes Prometheus metrics at the `/metrics` endpoint (provided by go-lib) for monitoring flag evaluations, API performance, and service health.
+
+### Metrics
+
+**Flag Evaluation Metrics:**
+- `flag_evaluations_total` (counter): Total flag evaluations labeled by `flag_name` and `result` (true/false)
+- `flag_evaluation_duration_seconds` (histogram): Evaluation latency labeled by `flag_name`
+
+**Flag Inventory Metrics:**
+- `flags_total` (gauge): Total number of flags labeled by `status` (enabled/disabled)
+
+**HTTP Metrics:**
+- `http_requests_total` (counter): Total HTTP requests labeled by `method`, `path`, and `status`
+- `http_request_duration_seconds` (histogram): HTTP request duration labeled by `method` and `path`
+
+### Sample Queries
+
+**Flag evaluation rate:**
+```promql
+rate(flag_evaluations_total[5m])
+```
+
+**P99 evaluation latency:**
+```promql
+histogram_quantile(0.99, rate(flag_evaluation_duration_seconds_bucket[5m]))
+```
+
+**Enabled vs disabled flags:**
+```promql
+flags_total{status="enabled"} / (flags_total{status="enabled"} + flags_total{status="disabled"})
+```
+
+**HTTP error rate:**
+```promql
+sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+```
+
+### Integration
+
+Point your Prometheus server at `http://<semaphore-host>:8080/metrics` to scrape metrics.
+
 ## Configuration
 
 Configuration is loaded and validated at startup through shared `go-lib` configuration packages.
@@ -331,6 +374,7 @@ Major configuration areas:
 - Transport wiring
 - Tracing
 - Health checks
+- Metrics (Prometheus endpoint)
 
 See [config/config.go](./config/config.go) for registration order and loaded config groups.
 
