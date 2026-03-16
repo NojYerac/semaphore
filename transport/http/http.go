@@ -64,7 +64,7 @@ func (r *Routes) GetFlagsHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	metrics.UpdateFlagCounts(enabled, disabled)
-	
+
 	r.writeJSON(ctx, w, http.StatusOK, flags)
 }
 
@@ -155,20 +155,20 @@ func (r *Routes) EvaluateFlagHandler(w http.ResponseWriter, req *http.Request) {
 	if !r.decodeJSONBody(ctx, w, req, input) {
 		return
 	}
-	
+
 	// Measure evaluation duration
 	start := time.Now()
 	result, err := r.src.EvaluateFlag(ctx, id, input.UserID, input.GroupIDs)
 	duration := time.Since(start)
-	
+
 	if err != nil {
 		r.writeError(ctx, w, err, "failed to evaluate flag", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Record metrics using flag ID as the label
 	metrics.RecordFlagEvaluation(id, result, duration)
-	
+
 	r.writeJSON(
 		ctx,
 		w,
