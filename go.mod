@@ -2,8 +2,6 @@ module github.com/nojyerac/semaphore
 
 go 1.25.1
 
-replace github.com/nojyerac/go-lib => ../go-lib
-
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/Masterminds/squirrel v1.5.4
