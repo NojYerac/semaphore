@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# GitHub
+.github
+
+# Build artifacts
+build/
+
+# Test files
+*_test.go
+testclient/
+
+# Documentation
+README.md
+plans/
+
+# IDE
+.vscode
+.idea
+
+# Dependencies (will be downloaded during build)
+vendor/
+
+# Temp files
+*.swp
+*.swo
+*~
