@@ -1,5 +1,7 @@
 # Semaphore
 
+[![CI](https://github.com/NojYerac/semaphore/actions/workflows/ci.yml/badge.svg)](https://github.com/NojYerac/semaphore/actions/workflows/ci.yml)
+
 **Lightweight, production-ready feature flag service in Go.**
 
 Control feature rollouts with percentage targeting, user lists, and group-based rules—all backed by PostgreSQL with full audit trails.
