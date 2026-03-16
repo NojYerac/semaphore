@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: semaphore-db
+    environment:
+      POSTGRES_DB: ${SEMAPHORE_DB_NAME:-semaphore}
+      POSTGRES_USER: ${SEMAPHORE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${SEMAPHORE_DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEMAPHORE_DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - semaphore-network
+
+  semaphore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: semaphore-service
+    environment:
+      # Application name
+      SEMAPHORE_NAME: ${SEMAPHORE_NAME:-semaphore}
+      
+      # Database configuration
+      SEMAPHORE_DB_HOST: postgres
+      SEMAPHORE_DB_PORT: ${SEMAPHORE_DB_PORT:-5432}
+      SEMAPHORE_DB_NAME: ${SEMAPHORE_DB_NAME:-semaphore}
+      SEMAPHORE_DB_USER: ${SEMAPHORE_DB_USER:-postgres}
+      SEMAPHORE_DB_PASSWORD: ${SEMAPHORE_DB_PASSWORD:-postgres}
+      
+      # Authentication configuration
+      SEMAPHORE_AUTH_ISSUER: ${SEMAPHORE_AUTH_ISSUER:-semaphore}
+      SEMAPHORE_AUTH_AUDIENCE: ${SEMAPHORE_AUTH_AUDIENCE:-semaphore-api}
+      SEMAPHORE_AUTH_HMAC_SECRET: ${SEMAPHORE_AUTH_HMAC_SECRET:-change-me-in-production}
+      SEMAPHORE_AUTH_CLOCK_SKEW: ${SEMAPHORE_AUTH_CLOCK_SKEW:-60s}
+      
+      # Logging configuration
+      SEMAPHORE_LOG_LEVEL: ${SEMAPHORE_LOG_LEVEL:-info}
+      SEMAPHORE_LOG_FORMAT: ${SEMAPHORE_LOG_FORMAT:-json}
+      
+      # HTTP server configuration
+      SEMAPHORE_HTTP_PORT: ${SEMAPHORE_HTTP_PORT:-8080}
+      SEMAPHORE_HTTP_HOST: ${SEMAPHORE_HTTP_HOST:-0.0.0.0}
+      
+      # Transport configuration
+      SEMAPHORE_TRANSPORT_GRPC_PORT: ${SEMAPHORE_TRANSPORT_GRPC_PORT:-9090}
+      SEMAPHORE_TRANSPORT_GRPC_HOST: ${SEMAPHORE_TRANSPORT_GRPC_HOST:-0.0.0.0}
+      
+      # Health check configuration
+      SEMAPHORE_HEALTH_PATH: ${SEMAPHORE_HEALTH_PATH:-/health}
+      
+      # Tracing configuration (optional)
+      SEMAPHORE_TRACING_ENABLED: ${SEMAPHORE_TRACING_ENABLED:-false}
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - semaphore-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  semaphore-network:
+    driver: bridge
