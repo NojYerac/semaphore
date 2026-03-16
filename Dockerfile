@@ -17,7 +17,9 @@ COPY . .
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
+    -ldflags="-s -w \
+      -X github.com/nojyerac/go-lib/version.semVer=$(cat VERSION 2>/dev/null || echo 0.0.0) \
+      -X github.com/nojyerac/go-lib/version.gitSHA=$(git rev-list -1 HEAD 2>/dev/null || echo unknown)" \
     -o /build/semaphore \
     ./semaphore/main.go
 
