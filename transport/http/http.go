@@ -229,5 +229,3 @@ func (r *Routes) writeJSON(
 		return
 	}
 }
-
-
