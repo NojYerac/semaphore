@@ -52,7 +52,7 @@ func (r *Routes) GetFlagsHandler(w http.ResponseWriter, req *http.Request) {
 		r.writeError(ctx, w, err, "failed to get flags", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Update flag count metrics from the data we already have
 	enabled := 0
 	disabled := 0
