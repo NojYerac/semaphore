@@ -28,7 +28,6 @@ const (
 	auditActionFlagCreated = "flag.created"
 	auditActionFlagUpdated = "flag.updated"
 	auditActionFlagDeleted = "flag.deleted"
-	defaultAuditActorID    = "11111111-1111-4111-8111-111111111111"
 )
 
 func WithAuditLogger(logger audit.AuditLogger) Option {

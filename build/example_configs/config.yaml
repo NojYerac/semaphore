@@ -12,9 +12,9 @@ auth_clock_skew: "30s"
 no_tls: True
 port: 8080
 
-database_connection_string: "postgres://localhost:5432/postgres?sslmode=disable"
+database_connection_string: "postgres://nojyerac@host.docker.internal:5432/postgres?sslmode=disable"
 
-audit_logger_type: "stdout"
+audit_logger_type: "noop"
 
 # tls_public_cert: "example_configs/testdata/pub.crt"
 # tls_private_key: "example_configs/testdata/priv.key"

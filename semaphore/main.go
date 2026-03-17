@@ -30,8 +30,6 @@ import (
 //nolint:funlen // main orchestrates process bootstrap and shutdown wiring in one place.
 func main() {
 	// Initialize configuration
-	version.SetSemVer("0.0.0")
-	version.SetServiceName("semaphore")
 	v := version.GetVersion()
 
 	if err := config.InitAndValidate(); err != nil {
@@ -78,7 +76,10 @@ func main() {
 		logger.WithError(err).Panic("failed to create data source")
 	}
 
-	dataEngine := data.NewDataEngine(source, engine.NewEngine(source))
+	dataEngine, err := data.NewMeteredDataEngine(source, engine.NewEngine(source))
+	if err != nil {
+		logger.WithError(err).Panic("failed to create metered data engine")
+	}
 	validator := auth.NewValidator(config.AuthConfig)
 
 	// Initialize transports

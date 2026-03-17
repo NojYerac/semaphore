@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/nojyerac/go-lib/auth"
@@ -14,7 +13,6 @@ import (
 	"github.com/nojyerac/go-lib/tracing"
 	libhttp "github.com/nojyerac/go-lib/transport/http"
 	"github.com/nojyerac/semaphore/data"
-	"github.com/nojyerac/semaphore/metrics"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -52,18 +50,6 @@ func (r *Routes) GetFlagsHandler(w http.ResponseWriter, req *http.Request) {
 		r.writeError(ctx, w, err, "failed to get flags", http.StatusInternalServerError)
 		return
 	}
-
-	// Update flag count metrics from the data we already have
-	enabled := 0
-	disabled := 0
-	for _, flag := range flags {
-		if flag.Enabled {
-			enabled++
-		} else {
-			disabled++
-		}
-	}
-	metrics.UpdateFlagCounts(enabled, disabled)
 
 	r.writeJSON(ctx, w, http.StatusOK, flags)
 }
@@ -155,19 +141,16 @@ func (r *Routes) EvaluateFlagHandler(w http.ResponseWriter, req *http.Request) {
 	if !r.decodeJSONBody(ctx, w, req, input) {
 		return
 	}
+	if err := r.v.Struct(input); err != nil {
+		r.writeError(ctx, w, err, "invalid input", http.StatusUnprocessableEntity)
+		return
+	}
 
-	// Measure evaluation duration
-	start := time.Now()
 	result, err := r.src.EvaluateFlag(ctx, id, input.UserID, input.GroupIDs)
-	duration := time.Since(start)
-
 	if err != nil {
 		r.writeError(ctx, w, err, "failed to evaluate flag", http.StatusInternalServerError)
 		return
 	}
-
-	// Record metrics using flag ID as the label
-	metrics.RecordFlagEvaluation(id, result, duration)
 
 	r.writeJSON(
 		ctx,
