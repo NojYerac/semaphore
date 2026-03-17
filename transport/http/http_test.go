@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -258,8 +259,10 @@ var _ = Describe("Http", func() {
 		BeforeEach(func() {
 			method = http.MethodPost
 			url = baseURL + "/" + flagID + "/evaluate"
-			body = strings.NewReader(`{"userID":"user1","groupIDs":["group1"]}`)
-			mockData.On("EvaluateFlag", mock.Anything, flagID, "user1", []string{"group1"}).Return(true, nil).Once()
+			userID := uuid.New().String()
+			groupID := uuid.New().String()
+			body = strings.NewReader(fmt.Sprintf(`{"userID":%q,"groupIDs":[%q]}`, userID, groupID))
+			mockData.On("EvaluateFlag", mock.Anything, flagID, userID, []string{groupID}).Return(true, nil).Once()
 		})
 		It("evaluates a flag", func() {
 			Expect(resp.Code).To(Equal(200))
