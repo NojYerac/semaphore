@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -190,6 +191,18 @@ func main() { // nolint
 		logger.WithError(err).Error("failed to make HTTP request")
 	} else {
 		logger.WithField("status_code", statusCode).Infof("Received HTTP response: %s", body)
+	}
+	if statusCode, body, err := do("GET", "http://localhost:8080/metrics", http.NoBody, readToken); err != nil {
+		logger.WithError(err).Error("failed to make HTTP request")
+	} else {
+		matches := regexp.MustCompile(`flags_total{flag_enabled=.*} \d+`).FindAllString(body, -1)
+		if len(matches) > 0 {
+			for _, match := range matches {
+				logger.Infof("Found metrics: %s", match)
+			}
+		} else {
+			logger.Errorf("No metrics found, status code: %d", statusCode)
+		}
 	}
 	if statusCode, body, err := do("DELETE", baseURL+"/"+createdFlagID, http.NoBody, adminToken); err != nil {
 		logger.WithError(err).Error("failed to make HTTP request")

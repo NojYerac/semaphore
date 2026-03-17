@@ -76,7 +76,10 @@ func main() {
 		logger.WithError(err).Panic("failed to create data source")
 	}
 
-	dataEngine := data.NewDataEngine(source, engine.NewEngine(source))
+	dataEngine, err := data.NewMeteredDataEngine(source, engine.NewEngine(source))
+	if err != nil {
+		logger.WithError(err).Panic("failed to create metered data engine")
+	}
 	validator := auth.NewValidator(config.AuthConfig)
 
 	// Initialize transports
