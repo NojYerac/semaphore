@@ -17,23 +17,23 @@ COPY . .
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -o ./build/semaphore \
     -ldflags="-s -w \
-      -X github.com/nojyerac/go-lib/version.semVer=$(cat VERSION 2>/dev/null || echo 0.0.0) \
-      -X github.com/nojyerac/go-lib/version.gitSHA=$(git rev-list -1 HEAD 2>/dev/null || echo unknown)" \
-    -o /build/semaphore \
-    ./semaphore/main.go
+        -X github.com/nojyerac/go-lib/version.semVer=$(cat VERSION 2>/dev/null || echo 0.0.0) \
+        -X github.com/nojyerac/go-lib/version.gitSHA=$(git rev-parse HEAD 2>/dev/null || echo unknown) \
+        -X github.com/nojyerac/go-lib/version.serviceName=semaphore" \
+    ./semaphore
+
+RUN adduser -u 1000 -D semaphore && \
+    chown semaphore:semaphore ./build/semaphore
 
 # Final stage
 FROM scratch
 
-# Copy CA certificates for HTTPS connections
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
+COPY --from=builder /etc/passwd /etc/passwd
 # Copy the binary
-COPY --from=builder /build/semaphore /semaphore
-
-# Expose HTTP and gRPC ports
-EXPOSE 8080 9090
+COPY --from=builder /build/build/semaphore /semaphore
+USER semaphore
 
 # Run the binary
 ENTRYPOINT ["/semaphore"]

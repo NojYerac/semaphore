@@ -30,8 +30,6 @@ import (
 //nolint:funlen // main orchestrates process bootstrap and shutdown wiring in one place.
 func main() {
 	// Initialize configuration
-	version.SetSemVer("0.0.0")
-	version.SetServiceName("semaphore")
 	v := version.GetVersion()
 
 	if err := config.InitAndValidate(); err != nil {
