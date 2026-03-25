@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	"github.com/nojyerac/go-lib/audit"
 	"github.com/nojyerac/go-lib/auth"
@@ -46,7 +47,7 @@ func main() {
 	log.SetDefaultCtxLogger(logger)
 	ctx = log.WithLogger(ctx, logger)
 
-	tp := tracing.NewTracerProvider(config.TraceConfig)
+	tp, traceExp := tracing.NewTracerProvider(config.TraceConfig)
 	tracing.SetGlobal(tp)
 
 	mp, metricHandler, err := metrics.NewMetricProvider()
@@ -110,6 +111,10 @@ func main() {
 	// Start everything and wait for shutdown signal
 	wg := new(sync.WaitGroup)
 
+	if err := traceExp.Start(ctx); err != nil {
+		logger.WithError(err).Panic("tracing exporter failed")
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -128,6 +133,9 @@ func main() {
 
 	logger.Info("starting")
 	<-sigChan
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	traceExp.Shutdown(shutdownCtx)
 	cancel()
 	logger.Info("stopping")
 	wg.Wait()
