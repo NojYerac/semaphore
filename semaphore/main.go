@@ -133,9 +133,11 @@ func main() {
 
 	logger.Info("starting")
 	<-sigChan
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	traceExp.Shutdown(shutdownCtx)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := traceExp.Shutdown(shutdownCtx); err != nil {
+		logger.WithError(err).Error("failed to shutdown trace exporter")
+	}
 	cancel()
 	logger.Info("stopping")
 	wg.Wait()
